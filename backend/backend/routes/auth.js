@@ -99,35 +99,35 @@ router.post('/login', loginLimiter, async (req, res) => {
 });
 
 // POST /api/auth/google
-// NOTE: This receives an OAuth2 access_token from the frontend (via useGoogleLogin implicit flow).
-// It calls Google's userinfo endpoint to verify the token and get user details.
-// IMPORTANT: Render must have NODE_ENV=production set so cookies are sent with secure+sameSite=none.
+// Receives an OAuth2 access_token from frontend (useGoogleLogin implicit flow).
+// Verifies it against Google userinfo, then creates/updates user and sets JWT cookie.
 router.post('/google', async (req, res) => {
   try {
     const { token } = req.body;
     if (!token) {
-      console.error('[Auth] Google login: no token in request body');
+      console.warn('[Auth] /google called with no token');
       return res.status(400).json({ message: 'No Google token provided' });
     }
 
-    // Verify access_token by calling Google userinfo endpoint
+    // Verify the access_token with Google
     let googleData;
     try {
       const { data } = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${token}` },
-        timeout: 10000,
+        timeout: 8000,
       });
       googleData = data;
     } catch (googleErr) {
-      console.error('[Auth] Google userinfo API error:', googleErr.response?.status, googleErr.response?.data || googleErr.message);
-      return res.status(401).json({ message: 'Invalid Google token. Please try signing in again.' });
+      const status = googleErr.response?.status;
+      const msg = googleErr.response?.data?.error_description || googleErr.message;
+      console.error(`[Auth] Google userinfo failed: ${status} — ${msg}`);
+      return res.status(401).json({ message: 'Invalid Google token. Please sign in again.' });
     }
 
     const { sub: googleId, email, name, picture: avatar } = googleData;
-
     if (!email) {
-      console.error('[Auth] Google userinfo missing email field. Data:', JSON.stringify(googleData));
-      return res.status(400).json({ message: 'Google account does not have a public email address.' });
+      console.error('[Auth] Google profile has no email:', JSON.stringify(googleData));
+      return res.status(400).json({ message: 'Google account has no email address.' });
     }
 
     let user = await User.findOne({ email });
@@ -142,17 +142,17 @@ router.post('/google', async (req, res) => {
     }
 
     const jwtToken = generateToken(user._id);
-    // IMPORTANT: secure must be true and sameSite must be 'none' for cross-domain cookies
-    // (Vercel frontend + Render backend = different domains).
-    // This requires NODE_ENV=production to be set in Render environment variables.
+    const isProd = process.env.NODE_ENV === 'production';
+    console.log(`[Auth] Google login OK — user:${user._id} NODE_ENV:${process.env.NODE_ENV} secure:${isProd} sameSite:${isProd ? 'none' : 'lax'}`);
+
     res.cookie('token', jwtToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
     });
 
-    console.log('[Auth] Google login success for user:', user._id, '| NODE_ENV:', process.env.NODE_ENV);
     res.json({
       user: { id: user._id, name: user.name, email: user.email, avatar: user.avatar },
     });
@@ -174,7 +174,8 @@ router.post('/logout', (req, res) => {
 });
 
 // GET /api/auth/me  — validate token and return current user
-// Returns { user: { ... } } — same shape as login/signup/google for consistency
+// Returns { user: { ... } } — same shape as login/signup/google for consistency.
+// IMPORTANT: Must wrap in { user: } — frontend getMe() does .then(data => data.user)
 router.get('/me', require('../middleware/auth').protect, (req, res) => {
   const u = req.user;
   res.json({ user: { id: u._id, name: u.name, email: u.email, avatar: u.avatar } });
