@@ -4,6 +4,12 @@ const User = require('../models/User');
 const protect = async (req, res, next) => {
   let token;
 
+  // Diagnostic: log what cookies/headers arrive (dev only, safe in prod as warn)
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[Auth Middleware] cookies:', JSON.stringify(req.cookies));
+    console.log('[Auth Middleware] origin:', req.headers.origin);
+  }
+
   if (req.cookies && req.cookies.token) {
     token = req.cookies.token;
   } else if (req.headers.authorization?.startsWith('Bearer ')) {
@@ -11,6 +17,7 @@ const protect = async (req, res, next) => {
   }
 
   if (!token) {
+    console.warn('[Auth Middleware] No token found in cookies or Authorization header for', req.originalUrl);
     return res.status(401).json({ message: 'Not authorized, no token' });
   }
 

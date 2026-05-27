@@ -117,10 +117,17 @@ export const http = async (endpoint, options = {}) => {
     data = { message: 'Server returned an unexpected response.' };
   }
 
-  // ── 401 — session expired ────────────────────────────────────
+  // ── 401 — session expired ────────────────────────────────────────────
   if (res.status === 401) {
-    logger.warn('Session expired — dispatching auth:expired', { context: 'http', data: endpoint });
-    dispatchAuthExpired();
+    // Don't dispatch auth:expired for ANY /auth/* route.
+    // Auth routes (/auth/google, /auth/login, /auth/me) all handle
+    // their own 401s at the call site. Dispatching here would cause
+    // a global logout while the user is actively trying to log in.
+    const isAuthRoute = endpoint.startsWith('/auth/');
+    if (!isAuthRoute) {
+      logger.warn('Session expired — dispatching auth:expired', { context: 'http', data: endpoint });
+      dispatchAuthExpired();
+    }
     const err = new Error(data.message || 'Your session has expired. Please sign in again.');
     err.status = 401;
     throw err;

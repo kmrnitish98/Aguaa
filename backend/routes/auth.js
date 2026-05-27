@@ -99,15 +99,36 @@ router.post('/login', loginLimiter, async (req, res) => {
 });
 
 // POST /api/auth/google
+// NOTE: This receives an OAuth2 access_token from the frontend (via useGoogleLogin implicit flow).
+// It calls Google's userinfo endpoint to verify the token and get user details.
+// IMPORTANT: Render must have NODE_ENV=production set so cookies are sent with secure+sameSite=none.
 router.post('/google', async (req, res) => {
   try {
     const { token } = req.body;
-    if (!token) return res.status(400).json({ message: 'No Google token provided' });
+    if (!token) {
+      console.error('[Auth] Google login: no token in request body');
+      return res.status(400).json({ message: 'No Google token provided' });
+    }
 
-    const { data } = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const { sub: googleId, email, name, picture: avatar } = data;
+    // Verify access_token by calling Google userinfo endpoint
+    let googleData;
+    try {
+      const { data } = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000,
+      });
+      googleData = data;
+    } catch (googleErr) {
+      console.error('[Auth] Google userinfo API error:', googleErr.response?.status, googleErr.response?.data || googleErr.message);
+      return res.status(401).json({ message: 'Invalid Google token. Please try signing in again.' });
+    }
+
+    const { sub: googleId, email, name, picture: avatar } = googleData;
+
+    if (!email) {
+      console.error('[Auth] Google userinfo missing email field. Data:', JSON.stringify(googleData));
+      return res.status(400).json({ message: 'Google account does not have a public email address.' });
+    }
 
     let user = await User.findOne({ email });
     if (user) {
@@ -121,6 +142,9 @@ router.post('/google', async (req, res) => {
     }
 
     const jwtToken = generateToken(user._id);
+    // IMPORTANT: secure must be true and sameSite must be 'none' for cross-domain cookies
+    // (Vercel frontend + Render backend = different domains).
+    // This requires NODE_ENV=production to be set in Render environment variables.
     res.cookie('token', jwtToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -128,12 +152,13 @@ router.post('/google', async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
+    console.log('[Auth] Google login success for user:', user._id, '| NODE_ENV:', process.env.NODE_ENV);
     res.json({
       user: { id: user._id, name: user.name, email: user.email, avatar: user.avatar },
     });
   } catch (err) {
-    console.error('[Auth] google login error:', err.message);
-    res.status(500).json({ message: 'Google login failed' });
+    console.error('[Auth] Google login unexpected error:', err.message);
+    res.status(500).json({ message: 'Google login failed. Please try again.' });
   }
 });
 
@@ -149,9 +174,10 @@ router.post('/logout', (req, res) => {
 });
 
 // GET /api/auth/me  — validate token and return current user
+// Returns { user: { ... } } — same shape as login/signup/google for consistency
 router.get('/me', require('../middleware/auth').protect, (req, res) => {
   const u = req.user;
-  res.json({ id: u._id, name: u.name, email: u.email, avatar: u.avatar });
+  res.json({ user: { id: u._id, name: u.name, email: u.email, avatar: u.avatar } });
 });
 
 module.exports = router;

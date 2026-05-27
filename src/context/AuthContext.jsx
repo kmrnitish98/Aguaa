@@ -46,10 +46,9 @@ export const AuthProvider = ({ children }) => {
     }
   });
 
-  // loading=true only when we have a cached user to verify with the server
-  const [loading, setLoading] = useState(
-    () => Boolean(localStorage.getItem(AUTH.USER_STORAGE_KEY))
-  );
+  // Always start loading=true so ProtectedRoute never sees a premature null user.
+  // Set to false only after the server verify attempt completes (or we confirm no session).
+  const [loading, setLoading] = useState(true);
 
   // Ref to track if component is still mounted (prevents setState on unmounted)
   const mounted = useRef(true);
@@ -60,14 +59,6 @@ export const AuthProvider = ({ children }) => {
 
   // ── Verify session on mount ─────────────────────────────────────────────
   useEffect(() => {
-    const hasCachedUser = localStorage.getItem(AUTH.USER_STORAGE_KEY);
-    if (!hasCachedUser) {
-      setLoading(false);
-      return;
-    }
-
-    const { signal, abort } = { signal: null, abort: () => {} };
-    // Use a simple AbortController for cleanup
     const controller = new AbortController();
 
     getMe(controller.signal)
@@ -75,10 +66,12 @@ export const AuthProvider = ({ children }) => {
         if (!mounted.current) return;
         setCurrentUser(user);
         localStorage.setItem(AUTH.USER_STORAGE_KEY, JSON.stringify(user));
-        logger.info('Session verified', { context: 'AuthContext', data: { id: user._id } });
+        logger.info('Session verified', { context: 'AuthContext', data: { id: user.id } });
       })
       .catch((err) => {
         if (!mounted.current) return;
+        // Ignore aborted / timed-out requests (happens during StrictMode double-mount)
+        if (err.code === 'ABORTED' || err.code === 'TIMEOUT') return;
         if (err.status === 401) {
           // Genuine session expiry — clear auth
           localStorage.removeItem(AUTH.USER_STORAGE_KEY);
