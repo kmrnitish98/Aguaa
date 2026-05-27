@@ -85,10 +85,7 @@ const fadeUpVariant = {
 // These videos.pexels.com URLs are permanent and served directly (no redirect, no auth).
 // Do NOT use www.pexels.com/download/video/ — those are redirect URLs blocked by CSP.
 const BACKGROUND_VIDEOS = [
-  "https://videos.pexels.com/video-files/34565055/14645159_1920_1080_25fps.mp4",
-  "https://videos.pexels.com/video-files/16352543/16352543-hd_1920_1080_30fps.mp4",
-  "https://videos.pexels.com/video-files/14299460/14299460-hd_1920_1080_25fps.mp4",
-  "https://videos.pexels.com/video-files/29766220/12791760_3840_2160_25fps.mp4",
+ 
 ];
 
 const HERO_MEDIA = [

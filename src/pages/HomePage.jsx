@@ -83,10 +83,10 @@ const fadeUpVariant = {
 
 // Constants
 const BACKGROUND_VIDEOS = [
-  "https://www.pexels.com/download/video/34565055/",
-  "https://www.pexels.com/download/video/16352543/",
-  "https://www.pexels.com/download/video/14299460/",
-  "https://www.pexels.com/download/video/29766220/",
+   "https://videos.pexels.com/video-files/34565055/14645159_1920_1080_25fps.mp4",
+  "https://videos.pexels.com/video-files/16352543/16352543-hd_1920_1080_30fps.mp4",
+  "https://videos.pexels.com/video-files/14299460/14299460-hd_1920_1080_25fps.mp4",
+  "https://videos.pexels.com/video-files/29766220/12791760_3840_2160_25fps.mp4",
 ];
 
 const HERO_MEDIA = [
