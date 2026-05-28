@@ -63,7 +63,7 @@ const useCountUp = (end, duration = 2000) => {
         };
         requestAnimationFrame(step);
       },
-      { threshold: 0.5 }
+      { threshold: 0.5 },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -83,7 +83,7 @@ const fadeUpVariant = {
 
 // Constants
 const BACKGROUND_VIDEOS = [
-   "https://videos.pexels.com/video-files/34565055/14645159_1920_1080_25fps.mp4",
+  "https://videos.pexels.com/video-files/34565055/14645159_1920_1080_25fps.mp4",
   "https://videos.pexels.com/video-files/16352543/16352543-hd_1920_1080_30fps.mp4",
   "https://videos.pexels.com/video-files/14299460/14299460-hd_1920_1080_25fps.mp4",
   "https://videos.pexels.com/video-files/29766220/12791760_3840_2160_25fps.mp4",
@@ -149,10 +149,10 @@ const HomePage = () => {
     isLoading: loading,
     isError: isQueryError,
   } = useQuery({
-    queryKey: QUERY_KEYS.biodata.public({ page: 1, search: '', filter: 'All' }),
-    queryFn:  ({ signal }) => getPublicBiodatas({ signal }),
+    queryKey: QUERY_KEYS.biodata.public({ page: 1, search: "", filter: "All" }),
+    queryFn: ({ signal }) => getPublicBiodatas({ signal }),
     staleTime: CACHE.PUBLIC_BIODATAS_STALE_MS,
-    gcTime:    CACHE.GC_TIME_MS,
+    gcTime: CACHE.GC_TIME_MS,
   });
 
   // Normalise: getPublicBiodatas returns { data, total, ... } or plain array
@@ -162,8 +162,8 @@ const HomePage = () => {
 
   // CountUp refs
   const { count: countFamilies, ref: refFamilies } = useCountUp(10, 2500);
-  const { count: countRating,   ref: refRating }   = useCountUp(49, 2500);
-  const { count: countVerified, ref: refVerified }  = useCountUp(100, 2500);
+  const { count: countRating, ref: refRating } = useCountUp(49, 2500);
+  const { count: countVerified, ref: refVerified } = useCountUp(100, 2500);
 
   // Memoised particle positions — stable across re-renders
   const particles = useMemo(
@@ -171,12 +171,12 @@ const HomePage = () => {
       Array.from({ length: 15 }, (_, i) => ({
         id: i,
         x: (i * 137.5) % 100, // deterministic spread via golden-angle
-        y: (i * 97.3)  % 100,
+        y: (i * 97.3) % 100,
         opacity: 0.3 + (i % 4) * 0.12,
         duration: 6 + (i % 5),
         yMove: -80 - (i % 5) * 30,
       })),
-    []
+    [],
   );
 
   useEffect(() => {
@@ -185,7 +185,6 @@ const HomePage = () => {
     }, 5000);
     return () => clearInterval(interval);
   }, []);
-
 
   const filtered = biodatas.filter((b) => {
     const name = b.personalInfo?.fullName?.toLowerCase() || "";
@@ -1875,6 +1874,15 @@ const HomePage = () => {
               © {new Date().getFullYear()} Aguaa — Dil Se Rishta, Vishwas Se
               Shaadi.
             </p>
+
+            <div className="flex flex-col sm:flex-row items-center gap-1.5 text-[#a89060] text-sm font-medium tracking-wide">
+              <span className="opacity-80">Designed & Developed by</span>
+              <span className="font-bold text-[#d4a017] hover:text-[#f3ca58] transition-colors cursor-default relative group">
+                Nitish Kumar
+                <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-[#f3ca58] transition-all duration-300 group-hover:w-full"></span>
+              </span>
+            </div>
+
             <div className="flex gap-2">
               <span className="w-8 h-8 rounded bg-[#1f1500] border border-[#d4a017]/20 flex items-center justify-center hover:bg-[#2a1e08] transition-colors cursor-pointer">
                 <Shield className="w-4 h-4 text-[#d4a017]" />

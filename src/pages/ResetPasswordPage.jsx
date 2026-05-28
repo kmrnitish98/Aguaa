@@ -45,7 +45,7 @@ const ResetPasswordPage = () => {
     }
     setApiError('');
     try {
-      await apiResetPassword(token, data.password);
+      await apiResetPassword({ token, password: data.password });
       setDone(true);
       toast.success('Password reset successfully! Please sign in with your new password.');
       setTimeout(() => navigate('/login'), 3000);

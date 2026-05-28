@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, User, AlertCircle } from "lucide-react";
 import { useGoogleLogin } from "@react-oauth/google";
@@ -11,6 +11,95 @@ import { emailRules, nameRules, passwordRules } from "../utils/validation";
 import { getErrorMessage } from "../utils/apiError";
 import Button from "../components/ui/Button";
 import logo from "/logo-2.webp";
+
+const PasswordInputWithStrength = ({ register, control, errors, showPassword, setShowPassword, passwordRules }) => {
+  const password = useWatch({ control, name: "password", defaultValue: "" });
+  
+  let score = 0;
+  let label = "";
+  let color = "transparent";
+  let glow = "transparent";
+
+  if (password) {
+    const isStrong = password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password);
+    const isMedium = password.length >= 6 && /[a-zA-Z]/.test(password) && /\d/.test(password);
+    
+    if (isStrong) {
+      score = 3;
+      label = "Strong password";
+      color = "#22c55e"; // green
+      glow = "rgba(34, 197, 94, 0.25)";
+    } else if (isMedium) {
+      score = 2;
+      label = "Medium strength";
+      color = "#eab308"; // yellow
+      glow = "rgba(234, 179, 8, 0.25)";
+    } else {
+      score = 1;
+      label = "Weak password";
+      color = "#ef4444"; // red
+      glow = "rgba(239, 68, 68, 0.25)";
+    }
+  }
+
+  return (
+    <div>
+      <label className="block text-xs font-medium text-yellow-600/80 uppercase tracking-widest mb-2">
+        Password
+      </label>
+      <div className="relative">
+        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-red-900/60" />
+        <input
+          {...register("password", passwordRules)}
+          type={showPassword ? "text" : "password"}
+          placeholder="Minimum 6 characters"
+          className="w-full pl-11 pr-12 py-3 rounded-xl bg-red-950/30 border text-white placeholder-gray-700 focus:outline-none transition-all duration-300"
+          style={{
+            borderColor: password ? color : 'rgba(127, 29, 29, 0.4)',
+            boxShadow: password ? `0 0 12px ${glow}` : 'none'
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400"
+        >
+          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+      </div>
+      
+      {password && (
+        <motion.div 
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          className="mt-3 space-y-2 overflow-hidden"
+        >
+          <div className="flex gap-1.5">
+            {[1, 2, 3].map((seg) => (
+              <div
+                key={seg}
+                className="h-1 flex-1 rounded-full transition-all duration-500"
+                style={{
+                  backgroundColor: score >= seg ? color : 'rgba(255,255,255,0.08)',
+                  boxShadow: score >= seg ? `0 0 8px ${glow}` : 'none'
+                }}
+              />
+            ))}
+          </div>
+          <p className="text-xs font-medium transition-colors duration-300" style={{ color }}>
+            {label}
+          </p>
+        </motion.div>
+      )}
+
+      {errors.password && (
+        <p className="text-red-400 text-xs mt-1">
+          {errors.password.message}
+        </p>
+      )}
+    </div>
+  );
+};
 
 const SignupPage = () => {
   const navigate = useNavigate();
@@ -23,6 +112,7 @@ const SignupPage = () => {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm();
 
@@ -163,36 +253,14 @@ const SignupPage = () => {
             </div>
 
             {/* Password */}
-            <div>
-              <label className="block text-xs font-medium text-yellow-600/80 uppercase tracking-widest mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-red-900/60" />
-                <input
-                  {...register("password", passwordRules)}
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Minimum 6 characters"
-                  className="w-full pl-11 pr-12 py-3 rounded-xl bg-red-950/30 border border-red-900/40 text-white placeholder-gray-700 focus:outline-none focus:border-yellow-700/50 transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-red-400 text-xs mt-1">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
+            <PasswordInputWithStrength 
+              register={register} 
+              control={control} 
+              errors={errors} 
+              showPassword={showPassword} 
+              setShowPassword={setShowPassword} 
+              passwordRules={passwordRules} 
+            />
 
             <Button
               type="submit"
