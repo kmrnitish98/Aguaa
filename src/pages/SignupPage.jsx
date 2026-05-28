@@ -29,7 +29,7 @@ const SignupPage = () => {
   const onSubmit = async (data) => {
     setAuthError("");
     try {
-      const { user } = await apiSignUp(data.name, data.email, data.password);
+      const { user } = await apiSignUp({ name: data.name, email: data.email, password: data.password });
       login(user);
       toast.success('Account created! Welcome to Aguaa.');
       navigate("/create");
