@@ -37,10 +37,10 @@ const scaleIn = {
 /* ─── Contact info cards data ────────────────────────────────── */
 const contactCards = [
   {
-    icon: MessageCircle,
-    label: "WhatsApp",
-    value: "+91 98765 43210",
-    href: "https://wa.me/919876543210",
+    icon: Mail,
+    label: "Support",
+    value: "support@aguaa.in",
+    href: "mailto:support@aguaa.in",
     color: "#25D366",
   },
   {

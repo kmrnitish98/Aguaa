@@ -36,11 +36,17 @@ const dispatchAuthExpired = () => {
  */
 export const createAbortController = (timeoutMs = TIMEOUTS.API_REQUEST_MS) => {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort('timeout'), timeoutMs);
+  let didTimeout = false;
+  const timer = setTimeout(() => {
+    didTimeout = true;
+    controller.abort('timeout');
+  }, timeoutMs);
   return {
     signal: controller.signal,
     abort:  () => { clearTimeout(timer); controller.abort('cancelled'); },
     clear:  () => clearTimeout(timer),
+    /** True when the abort was caused by the internal timeout (not user cancellation). */
+    get timedOut() { return didTimeout; },
   };
 };
 
@@ -52,6 +58,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  */
 const retryDelay = (attempt) =>
   RETRY.BASE_DELAY_MS * Math.pow(2, attempt);
+
+// ── Endpoint-specific timeout overrides ─────────────────────────────────────
+// Some endpoints (e.g. forgot-password) involve sending email on the backend
+// and can be slow, especially on free-tier hosting with cold starts.
+const SLOW_ENDPOINTS = ['/auth/forgot-password', '/auth/reset-password', '/auth/signup'];
+const getTimeoutForEndpoint = (endpoint) =>
+  SLOW_ENDPOINTS.some((ep) => endpoint.startsWith(ep))
+    ? TIMEOUTS.API_REQUEST_MS * 2   // 30 s for slow endpoints
+    : TIMEOUTS.API_REQUEST_MS;      // 15 s default
 
 // ── Core http function ──────────────────────────────────────────────────────
 /**
@@ -66,12 +81,12 @@ export const http = async (endpoint, options = {}) => {
   const url = `${API_URL}${endpoint}`;
 
   // Merge caller signal with a timeout signal
-  const { signal: timeoutSignal, clear } = createAbortController();
+  const timeoutCtrl = createAbortController(getTimeoutForEndpoint(endpoint));
   const combinedSignal = signal
     ? AbortSignal.any
-      ? AbortSignal.any([signal, timeoutSignal])   // modern browsers
-      : signal                                      // fallback: use caller's signal
-    : timeoutSignal;
+      ? AbortSignal.any([signal, timeoutCtrl.signal])   // modern browsers
+      : signal                                            // fallback: use caller's signal
+    : timeoutCtrl.signal;
 
   const headers = {
     'Content-Type': 'application/json',
@@ -87,15 +102,17 @@ export const http = async (endpoint, options = {}) => {
       signal: combinedSignal,
     });
   } catch (err) {
-    clear();
+    timeoutCtrl.clear();
     if (err.name === 'AbortError') {
+      // Use the tracked flag — err.message does NOT contain the abort reason
+      const isTimeout = timeoutCtrl.timedOut;
       const abortErr = new Error(
-        err.message === 'timeout'
+        isTimeout
           ? 'Request timed out. Please try again.'
           : 'Request was cancelled.'
       );
       abortErr.status = 0;
-      abortErr.code   = err.message === 'timeout' ? 'TIMEOUT' : 'ABORTED';
+      abortErr.code   = isTimeout ? 'TIMEOUT' : 'ABORTED';
       throw abortErr;
     }
     // Network / CORS / DNS failure
@@ -105,7 +122,7 @@ export const http = async (endpoint, options = {}) => {
     logger.apiError(endpoint, err);
     throw netErr;
   } finally {
-    clear();
+    timeoutCtrl.clear();
   }
 
   // ── Parse response ───────────────────────────────────────────

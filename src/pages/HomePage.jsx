@@ -204,15 +204,7 @@ const HomePage = () => {
     <div className="min-h-screen bg-[#0f0a00] text-[#f5ead0] overflow-hidden font-['DM_Sans',sans-serif] selection:bg-[#d4a017]/30 selection:text-[#f0c040]">
       {/* Schema Markup for Rich Results */}
 
-      {/* WhatsApp Floating Button */}
-      <a
-        href="https://wa.me/1234567890"
-        target="_blank"
-        rel="noreferrer"
-        className="fixed bottom-6 right-6 z-[9999] w-14 h-14 bg-[#25D366] hover:bg-[#128C7E] rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(37,211,102,0.4)] hover:scale-110 transition-transform duration-300"
-      >
-        <MessageCircle className="w-7 h-7 text-white" />
-      </a>
+      {/* WhatsApp Floating Button — disabled until a real support number is configured */}
 
       {/* ================= HERO SECTION ================= */}
       <section className="relative min-h-screen flex items-center pt-8 pb-[56px] lg:pb-[96px] lg:pt-16 overflow-hidden">

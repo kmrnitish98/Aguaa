@@ -326,14 +326,13 @@ const ProfilePage = () => {
     };
   }, [biodata, id]);
 
-  const handleCopyLink = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
+  const handleCopyLink = useCallback(() => {
+    const url = window.location.href;
+    const message = `Check out this biodata created on Aguaa:\n${url}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }, []);
 
   const handlePrint = useCallback(() => {

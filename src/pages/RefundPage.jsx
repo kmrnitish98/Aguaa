@@ -76,8 +76,8 @@ const sections = [
     content: `To initiate a refund, please contact our support team through one of the
       following channels:`,
     contacts: [
-      { label: "WhatsApp", value: "+91 98765 43210" },
       { label: "Email", value: "refunds@biodata.in" },
+      { label: "Support Email", value: "support@aguaa.in" },
       { label: "Support Hours", value: "Mon – Sat, 9 AM – 7 PM IST" },
     ],
     note: `Include your registered email address, order ID, and the reason for your
@@ -143,9 +143,9 @@ const sections = [
       resolving every concern promptly and professionally. Please do not hesitate
       to reach out — we value your trust in BioData.`,
     contacts: [
-      { label: "WhatsApp", value: "+91 98765 43210" },
       { label: "Email", value: "refunds@biodata.in" },
-      { label: "Website", value: "www.biodata.in/contact" },
+      { label: "Support Email", value: "support@aguaa.in" },
+      { label: "Website", value: "aguaa.in/contact" },
     ],
   },
 ];
