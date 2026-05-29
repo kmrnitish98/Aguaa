@@ -30,7 +30,7 @@ export const UPLOAD = {
 // ── Request timeouts ────────────────────────────────────────────────────────
 export const TIMEOUTS = {
   /** Standard API request timeout (ms) */
-  API_REQUEST_MS: 15_000,
+  API_REQUEST_MS: 30_000,
   /** Photo upload timeout — larger because of multipart (ms) */
   UPLOAD_MS: 60_000,
   /** Search debounce delay (ms) */
