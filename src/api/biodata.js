@@ -19,45 +19,94 @@ import logger from '../lib/logger';
 /**
  * Fetch paginated public biodatas.
  *
- * Backend is expected to support:
- *   GET /biodata/public?page=1&limit=12&search=rahul&filter=With+Photo
+ * Backend supports:
+ *   GET /biodata/public?page=1&limit=12&search=rahul&religion=Hindu&caste=Brahmin&location=Patna&ageRange=21-25
  *
- * Falls back gracefully if backend doesn't yet support pagination
- * (returns the full array as { data: [...], total, page, totalPages }).
- *
- * @param {{ page?: number, limit?: number, search?: string, filter?: string, signal?: AbortSignal }} params
- * @returns {Promise<{ data: object[], total: number, page: number, totalPages: number }>}
+ * @param {{
+ *   page?: number,
+ *   limit?: number,
+ *   search?: string,
+ *   name?: string,
+ *   city?: string,
+ *   religion?: string,
+ *   caste?: string,
+ *   location?: string,
+ *   ageRange?: string,
+ *   minAge?: number,
+ *   maxAge?: number,
+ *   filter?: string,
+ *   signal?: AbortSignal
+ * }} params
+ * @returns {Promise<{ biodatas: object[], pagination: { currentPage: number, totalPages: number, totalProfiles: number, limit: number }, data: object[], total: number, page: number, totalPages: number, hasMore: boolean }>}
  */
 export const getPublicBiodatas = async ({
-  page   = 1,
-  limit  = PAGINATION.EXPLORE_PAGE_SIZE,
-  search = '',
-  filter = 'All',
+  page     = 1,
+  limit    = PAGINATION.EXPLORE_PAGE_SIZE,
+  search   = '',
+  name     = '',
+  city     = '',
+  religion = '',
+  caste    = '',
+  location = '',
+  age      = '',
+  ageRange = '',
+  minAge,
+  maxAge,
+  filter   = 'All',
   signal,
 } = {}) => {
-  const params = new URLSearchParams({ page, limit });
-  if (search) params.set('search', search);
-  if (filter && filter !== 'All') params.set('filter', filter);
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (search) params.set('search', search.trim());
+  if (name) params.set('name', name.trim());
+  if (city) params.set('city', city.trim());
+  if (religion && religion !== 'All') params.set('religion', religion.trim());
+  if (caste && caste !== 'All') params.set('caste', caste.trim());
+  if (location && location !== 'All') params.set('location', location.trim());
+  const effectiveAge = age || ageRange;
+  if (effectiveAge && effectiveAge !== 'All') {
+    params.set('age', effectiveAge.trim());
+    params.set('ageRange', effectiveAge.trim());
+  }
+  if (minAge) params.set('minAge', String(minAge));
+  if (maxAge) params.set('maxAge', String(maxAge));
+  if (filter && filter !== 'All') params.set('filter', filter.trim());
 
   const result = await http(`/biodata/public?${params}`, { signal });
 
   // ── Normalise response ──────────────────────────────────────────────────
-  // Handle both old format (plain array) and new paginated format
   if (Array.isArray(result)) {
     return {
+      biodatas:   result,
       data:       result,
+      pagination: {
+        currentPage:   1,
+        totalPages:    1,
+        totalProfiles: result.length,
+        limit,
+      },
       total:      result.length,
       page:       1,
       totalPages: 1,
       hasMore:    false,
     };
   }
+
+  const biodatas = result.biodatas ?? result.data ?? [];
+  const pagination = result.pagination ?? {
+    currentPage:   result.page ?? page,
+    totalPages:    result.totalPages ?? 1,
+    totalProfiles: result.total ?? biodatas.length,
+    limit,
+  };
+
   return {
-    data:       result.data       ?? result.biodatas ?? [],
-    total:      result.total      ?? 0,
-    page:       result.page       ?? page,
-    totalPages: result.totalPages ?? 1,
-    hasMore:    result.hasMore    ?? false,
+    biodatas,
+    pagination,
+    data:       biodatas,
+    total:      pagination.totalProfiles,
+    page:       pagination.currentPage,
+    totalPages: pagination.totalPages,
+    hasMore:    pagination.currentPage < pagination.totalPages,
   };
 };
 
@@ -68,6 +117,55 @@ export const getPublicBiodatas = async ({
  */
 export const getBiodataById = (id, signal) =>
   http(`/biodata/${id}`, { signal });
+
+/**
+ * Fetch a public preview of a biodata by ID (contact details omitted).
+ * @param {string} id
+ * @param {AbortSignal} [signal]
+ */
+export const getBiodataPreview = (id, signal) =>
+  http(`/biodata/${id}/preview`, { signal });
+
+/**
+ * Get current user's access request status for a specific biodata.
+ * @param {string} biodataId
+ */
+export const getBiodataRequestStatus = (biodataId) =>
+  http(`/biodata-requests/status/${biodataId}`);
+
+/**
+ * Send an access request for a specific biodata.
+ * @param {string} biodataId
+ * @param {string} [message]
+ */
+export const sendBiodataRequest = (biodataId, message = '') =>
+  http('/biodata-requests', {
+    method: 'POST',
+    body: JSON.stringify({ biodataId, message }),
+  });
+
+/**
+ * Fetch all incoming biodata access requests for the authenticated owner.
+ */
+export const getReceivedBiodataRequests = () =>
+  http('/biodata-requests/received');
+
+/**
+ * Fetch all access requests sent by the authenticated requester.
+ */
+export const getSentBiodataRequests = () =>
+  http('/biodata-requests/sent');
+
+/**
+ * Accept or reject a biodata access request.
+ * @param {string} requestId
+ * @param {'ACCEPTED' | 'REJECTED'} status
+ */
+export const updateBiodataRequestStatus = (requestId, status) =>
+  http(`/biodata-requests/${requestId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
 
 /**
  * Fetch a private biodata (owner only).

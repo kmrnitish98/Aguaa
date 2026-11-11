@@ -11,7 +11,9 @@ import {
   CheckCircle,
   ChevronLeft,
   User,
+  AlertCircle,
 } from "lucide-react";
+import { http } from "../api/http";
 import { useSEO } from '../hooks/useSEO';
 import { BreadcrumbSchema } from '../components/seo/SchemaMarkup';
 
@@ -99,6 +101,7 @@ export default function ContactPage() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   /* ── validation ── */
   const validate = () => {
@@ -124,16 +127,37 @@ export default function ContactPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitError("");
     const errs = validate();
     if (Object.keys(errs).length) {
       setErrors(errs);
       return;
     }
     setLoading(true);
-    /* Simulate network request */
-    await new Promise((r) => setTimeout(r, 1800));
-    setLoading(false);
-    setSubmitted(true);
+    try {
+      await http('/contact', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone ? form.phone.trim() : undefined,
+          subject: form.subject,
+          message: form.message.trim(),
+          website: form.website || undefined,
+        }),
+      });
+      setSubmitted(true);
+      setForm({ name: "", email: "", phone: "", subject: "", message: "", website: "" });
+      setErrors({});
+    } catch (err) {
+      const errMsg =
+        err.message ||
+        (err.data && err.data.message) ||
+        "Failed to send message. Please check your connection and try again.";
+      setSubmitError(errMsg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   /* ─────────────────────────────────────────────────────────── */
@@ -151,8 +175,8 @@ export default function ContactPage() {
       {/* Breadcrumb Schema */}
       <BreadcrumbSchema
         items={[
-          { name: 'Home', url: 'https://aguaa.in/' },
-          { name: 'Contact', url: 'https://aguaa.in/contact' },
+          { name: 'Home', url: 'https://myaguaa.in/' },
+          { name: 'Contact', url: 'https://myaguaa.in/contact' },
         ]}
       />
       {/* ── Google Font ── */}
@@ -707,12 +731,11 @@ export default function ContactPage() {
                         marginBottom: "0.8rem",
                       }}
                     >
-                      Message Sent!
+                      Message Received!
                     </h3>
                     <p style={{ color: "#a89060", fontSize: "0.97rem", lineHeight: 1.7, marginBottom: "2rem" }}>
-                      Thank you for reaching out. Our team will get back to you
-                      within <strong style={{ color: "#f0c040" }}>24 – 48 hours</strong> on
-                      the business days. We look forward to assisting you.
+                      Thank you for reaching out. Your enquiry has been received successfully. Our team will review your message and get back to you
+                      within <strong style={{ color: "#f0c040" }}>24 – 48 business hours</strong>.
                     </p>
                     <button
                       onClick={() => {
@@ -748,6 +771,39 @@ export default function ContactPage() {
                     <p style={{ color: "#a89060", fontSize: "0.88rem", marginBottom: "2rem" }}>
                       Fill in the form below and we'll respond promptly.
                     </p>
+
+                    {/* Anti-spam honeypot */}
+                    <input
+                      type="text"
+                      name="website"
+                      value={form.website || ""}
+                      onChange={handleChange}
+                      tabIndex={-1}
+                      autoComplete="off"
+                      style={{ display: "none" }}
+                      aria-hidden="true"
+                    />
+
+                    {/* Submit Error Alert */}
+                    {submitError && (
+                      <div
+                        style={{
+                          background: "rgba(224, 112, 112, 0.12)",
+                          border: "1px solid rgba(224, 112, 112, 0.35)",
+                          borderRadius: 10,
+                          padding: "0.85rem 1rem",
+                          marginBottom: "1.5rem",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.6rem",
+                          color: "#fca5a5",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        <AlertCircle size={16} style={{ flexShrink: 0, color: "#e07070" }} />
+                        <span>{submitError}</span>
+                      </div>
+                    )}
 
                     {/* Row: Name + Email */}
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>

@@ -28,7 +28,7 @@ const plans = [
     color: "#a89060",
     highlight: false,
     cta: "Get Started Free",
-    ctaTo: "/register",
+    ctaTo: "/signup",
     features: [
       { label: "1 Biodata Profile", included: true },
       { label: "Basic Templates (5+)", included: true },
@@ -52,7 +52,7 @@ const plans = [
     highlight: true,
     badge: "Most Popular",
     cta: "Start Standard",
-    ctaTo: "/register?plan=standard",
+    ctaTo: "/signup?plan=standard",
     features: [
       { label: "5 Biodata Profiles", included: true },
       { label: "Basic Templates (5+)", included: true },
@@ -75,7 +75,7 @@ const plans = [
     color: "#f0c040",
     highlight: false,
     cta: "Go Premium",
-    ctaTo: "/register?plan=premium",
+    ctaTo: "/signup?plan=premium",
     features: [
       { label: "Unlimited Biodata Profiles", included: true },
       { label: "Basic Templates (5+)", included: true },
@@ -825,7 +825,7 @@ export default function PricingPage() {
             <p>
               Join thousands of families who found their perfect match with a beautifully crafted biodata.
             </p>
-            <Link to="/register" className="bottom-cta-btn">
+            <Link to="/signup" className="bottom-cta-btn">
               <Sparkles size={16} />
               Start for Free — No Credit Card
             </Link>

@@ -51,7 +51,7 @@ export const APP_ENV   = get('VITE_APP_ENV', import.meta.env.MODE);   // 'develo
 export const IS_PROD   = APP_ENV === 'production' || import.meta.env.PROD;
 export const IS_DEV    = !IS_PROD;
 export const APP_NAME  = get('VITE_APP_NAME', 'Aguaa');
-export const APP_URL   = get('VITE_APP_URL', 'https://aguaa.in');
+export const APP_URL   = get('VITE_APP_URL', 'https://myaguaa.in');
 
 // ── Feature flags ──────────────────────────────────────────────────────────────
 export const FEATURE_AI_ASSIST   = get('VITE_FEATURE_AI_ASSIST', 'true')  === 'true';

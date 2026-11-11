@@ -176,7 +176,7 @@ const Step1 = ({ register, errors, watch, setValue, t, lang, languagesKnown, set
       <InputField label={t('religion')} name="personalInfo.religion" register={register}
         errors={errors.personalInfo} placeholder={t('religionPlaceholder')} lang={lang} />
       <InputField label={t('caste')} name="personalInfo.caste" register={register}
-        errors={errors.personalInfo} placeholder={t('castePlaceholder')} lang={lang} />
+        errors={errors.personalInfo} placeholder={t('castePlaceholder')} required lang={lang} />
       <InputField label={t('gotra')} name="personalInfo.gotra" register={register}
         errors={errors.personalInfo} placeholder={t('gotraPlaceholder')} lang={lang} />
       <InputField label={t('zodiac')} name="personalInfo.zodiac" register={register}
@@ -629,7 +629,7 @@ const EditBiodataPage = () => {
 
   // ── Navigation ──
   const goNext = async () => {
-    const fieldsMap = { 1: ['personalInfo.fullName', 'personalInfo.dob'], 2: ['educationInfo.highestQualification'], 3: [], 4: ['preferences.contactName', 'preferences.contactPhone'] };
+    const fieldsMap = { 1: ['personalInfo.fullName', 'personalInfo.dob', 'personalInfo.caste'], 2: ['educationInfo.highestQualification'], 3: [], 4: ['preferences.contactName', 'preferences.contactPhone'] };
     const valid = await trigger(fieldsMap[step] || []);
     if (!valid) { setSaveError(t('fillRequired')); return; }
     setSaveError('');

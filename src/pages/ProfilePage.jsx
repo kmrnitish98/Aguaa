@@ -1,23 +1,66 @@
 import { lazy, Suspense, useEffect, useState, useRef, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 import {
   Share2, Printer, Download, Check, ArrowLeft, Heart,
   MessageCircle, ShieldCheck, Sparkles, Quote, ChevronUp, AlertCircle,
+  Lock, Clock, XCircle, Send
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { apiGetBiodataById } from '../api/client';
+import {
+  apiGetBiodataById,
+  apiGetBiodataPreview,
+  apiGetBiodataRequestStatus,
+  apiSendBiodataRequest
+} from '../api/client';
 import HeroBanner from '../components/biodata/HeroBanner';
 import PersonalInfoCard from '../components/biodata/PersonalInfoCard';
 import EducationCard from '../components/biodata/EducationCard';
 import FamilyCard from '../components/biodata/FamilyCard';
 // Lazy-load PDF template — only needed on print, not on initial page load
 const BiodataPDFTemplate = lazy(() => import('../components/biodata/BiodataPDFTemplate'));
+const TemplateGaneshRoyal = lazy(() => import('../components/biodata/templates/TemplateGaneshRoyal'));
+const TemplateOmClassic = lazy(() => import('../components/biodata/templates/TemplateOmClassic'));
+const TemplateRoyalTexture = lazy(() => import('../components/biodata/templates/TemplateRoyalTexture'));
+const TemplateModernPro = lazy(() => import('../components/biodata/templates/TemplateModernPro'));
+
+const TemplateRoyalMaharaja = lazy(() => import('../components/biodata/templates/TemplateRoyalMaharaja'));
+const TemplateModernMinimal = lazy(() => import('../components/biodata/templates/TemplateModernMinimal'));
+const TemplateFloralWedding = lazy(() => import('../components/biodata/templates/TemplateFloralWedding'));
+const TemplateTraditionalIndian = lazy(() => import('../components/biodata/templates/TemplateTraditionalIndian'));
+const TemplatePremiumDark = lazy(() => import('../components/biodata/templates/TemplatePremiumDark'));
+const TemplateRoyalBlueDiamond = lazy(() => import('../components/biodata/templates/TemplateRoyalBlueDiamond'));
+
+const DynamicTemplate = ({ biodata }) => {
+  const [searchParams] = useSearchParams();
+  const rawTid = searchParams.get('theme') || biodata?.templateId || 'default';
+  const tid = rawTid.trim();
+  switch (tid) {
+    case 'royal-gold':
+    case 'RoyalMaharaja': return <TemplateRoyalMaharaja biodata={biodata} />;
+    case 'elegant-minimal':
+    case 'ModernMinimal': return <TemplateModernMinimal biodata={biodata} />;
+    case 'floral-wedding':
+    case 'FloralWedding': return <TemplateFloralWedding biodata={biodata} />;
+    case 'modern-premium':
+    case 'PremiumDark': return <TemplatePremiumDark biodata={biodata} />;
+    case 'TraditionalIndian': return <TemplateTraditionalIndian biodata={biodata} />;
+    case 'RoyalBlueDiamond': return <TemplateRoyalBlueDiamond biodata={biodata} />;
+    case 'GaneshRoyal': return <TemplateGaneshRoyal biodata={biodata} />;
+    case 'OmClassic': return <TemplateOmClassic biodata={biodata} />;
+    case 'RoyalTexture': return <TemplateRoyalTexture biodata={biodata} />;
+    case 'ModernPro': return <TemplateModernPro biodata={biodata} />;
+    default: return <BiodataPDFTemplate biodata={biodata} />;
+  }
+};
+
 import Card from '../components/ui/Card';
 import Section from '../components/ui/Section';
 import Loader from '../components/ui/Loader';
 import Button from '../components/ui/Button';
 import { PersonProfileSchema } from '../components/seo/SchemaMarkup';
+import { useAuth } from '../hooks/useAuth';
+import ThemeGalleryDrawer from '../components/biodata/ThemeGalleryDrawer';
 
 /* ══════════════════════════════════════════════════════════════
    PREMIUM PDF ENGINE — Production-Ready, Mobile-Friendly
@@ -244,30 +287,98 @@ const ErrorToast = ({ message, onClose }) => (
 
 const ProfilePage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [biodata, setBiodata]       = useState(null);
   const [loading, setLoading]       = useState(true);
   const [notFound, setNotFound]     = useState(false);
+  const [accessApproved, setAccessApproved] = useState(false);
+  const [requestStatus, setRequestStatus]   = useState('NONE'); // NONE | PENDING | ACCEPTED | REJECTED
+  const [requestMessage, setRequestMessage] = useState('');
+  const [sendingRequest, setSendingRequest] = useState(false);
+  const [requestError, setRequestError]     = useState('');
+  const [requestSuccess, setRequestSuccess] = useState('');
   const [copied, setCopied]         = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfStage, setPdfStage]     = useState('');
   const [pdfError, setPdfError]     = useState('');
-  const profileRef     = useRef(null);
-  const pdfTemplateRef = useRef(null);
+  const [isThemeDrawerOpen, setIsThemeDrawerOpen] = useState(false);
+  const profileRef = useRef(null);
+  const { currentUser: user, loading: authLoading } = useAuth();
+
+  // Redirect unauthenticated visitors to login flow preserving intended biodata destination
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate(`/login?redirect=${encodeURIComponent(`/profile/${id}`)}`, { replace: true });
+    }
+  }, [authLoading, user, id, navigate]);
 
   useEffect(() => {
+    if (authLoading || !user) return;
+
+    let isMounted = true;
     const load = async () => {
+      setLoading(true);
       try {
-        const data = await apiGetBiodataById(id);
-        if (!data) setNotFound(true);
-        else setBiodata(data);
-      } catch {
-        setNotFound(true);
+        const fullData = await apiGetBiodataById(id);
+        if (!isMounted) return;
+        if (fullData) {
+          setBiodata(fullData);
+          setAccessApproved(true);
+          setRequestStatus('ACCEPTED');
+        } else {
+          setNotFound(true);
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        const errStatus = err?.status || err?.response?.status;
+        if (errStatus === 403) {
+          // Access restricted: fetch safe preview without contact details & check request status
+          try {
+            const [previewData, statusRes] = await Promise.all([
+              apiGetBiodataPreview(id),
+              apiGetBiodataRequestStatus(id).catch(() => null),
+            ]);
+            if (!isMounted) return;
+            if (previewData) {
+              setBiodata(previewData);
+              setAccessApproved(false);
+              setRequestStatus(statusRes?.status || err?.data?.status || 'NONE');
+            } else {
+              setNotFound(true);
+            }
+          } catch {
+            if (isMounted) setNotFound(true);
+          }
+        } else {
+          setNotFound(true);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     load();
-  }, [id]);
+    return () => { isMounted = false; };
+  }, [id, user, authLoading]);
+
+  const handleSendRequest = async (e) => {
+    e?.preventDefault?.();
+    if (sendingRequest) return;
+    setSendingRequest(true);
+    setRequestError('');
+    setRequestSuccess('');
+    try {
+      await apiSendBiodataRequest(id, requestMessage);
+      setRequestStatus('PENDING');
+      setRequestSuccess('Access request sent successfully! You will be able to view full biodata once the owner approves.');
+      setRequestMessage('');
+    } catch (err) {
+      const msg = err?.data?.message || err?.message || 'Failed to send access request. Please try again.';
+      setRequestError(msg);
+    } finally {
+      setSendingRequest(false);
+    }
+  };
 
   // ── Dynamic SEO: update <title> and <canonical> when profile data loads ──
   useEffect(() => {
@@ -288,7 +399,7 @@ const ProfilePage = () => {
       canonical.rel = 'canonical';
       document.head.appendChild(canonical);
     }
-    canonical.href = `https://aguaa.in/profile/${id}`;
+    canonical.href = `https://myaguaa.in/profile/${id}`;
 
     // OG tags for social sharing (WhatsApp, Facebook)
     const setMeta = (attr, name, content) => {
@@ -309,11 +420,11 @@ const ProfilePage = () => {
       city ? `from ${city}` : '',
       '— Dil Se Rishta, Vishwas Se Shaadi.',
     ].filter(Boolean).join(' ');
-    const ogImg = biodata.photoURL || 'https://aguaa.in/og-banner.png';
+    const ogImg = biodata.photoURL || 'https://myaguaa.in/og-banner.png';
 
     setMeta('property', 'og:title',       ogTitle);
     setMeta('property', 'og:description', ogDesc);
-    setMeta('property', 'og:url',         `https://aguaa.in/profile/${id}`);
+    setMeta('property', 'og:url',         `https://myaguaa.in/profile/${id}`);
     setMeta('property', 'og:type',        'profile');
     setMeta('property', 'og:image',       ogImg);
     setMeta('name',     'twitter:title',       ogTitle);
@@ -326,6 +437,28 @@ const ProfilePage = () => {
     };
   }, [biodata, id]);
 
+  // ── Preload active biodata template chunk to ensure zero latency during print/download ──
+  useEffect(() => {
+    if (!biodata) return;
+    const tid = searchParams.get('theme') || biodata.templateId || 'default';
+    switch (tid) {
+      case 'royal-gold':
+      case 'RoyalMaharaja': import('../components/biodata/templates/TemplateRoyalMaharaja'); break;
+      case 'elegant-minimal':
+      case 'ModernMinimal': import('../components/biodata/templates/TemplateModernMinimal'); break;
+      case 'floral-wedding':
+      case 'FloralWedding': import('../components/biodata/templates/TemplateFloralWedding'); break;
+      case 'modern-premium':
+      case 'PremiumDark': import('../components/biodata/templates/TemplatePremiumDark'); break;
+      case 'RoyalBlueDiamond': import('../components/biodata/templates/TemplateRoyalBlueDiamond'); break;
+      case 'GaneshRoyal': import('../components/biodata/templates/TemplateGaneshRoyal'); break;
+      case 'OmClassic': import('../components/biodata/templates/TemplateOmClassic'); break;
+      case 'RoyalTexture': import('../components/biodata/templates/TemplateRoyalTexture'); break;
+      case 'ModernPro': import('../components/biodata/templates/TemplateModernPro'); break;
+      default: import('../components/biodata/BiodataPDFTemplate'); break;
+    }
+  }, [biodata, searchParams]);
+
   const handleCopyLink = useCallback(() => {
     const url = window.location.href;
     const message = `Check out this biodata created on Aguaa:\n${url}`;
@@ -335,15 +468,44 @@ const ProfilePage = () => {
     setTimeout(() => setCopied(false), 2000);
   }, []);
 
-  const handlePrint = useCallback(() => {
-    window.print();
+  const handleRequestAccessClick = useCallback(() => {
+    const el = document.getElementById('access-request-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const textarea = el.querySelector('textarea');
+      if (textarea) {
+        setTimeout(() => textarea.focus(), 350);
+      }
+    }
+  }, []);
+
+  const handlePrint = useCallback(async () => {
+    try {
+      setPdfLoading(true);
+      setPdfStage('Preparing biodata for printing…');
+      // Buffer to allow the browser to paint the portal DOM, SVGs, and fonts
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      setPdfLoading(false);
+      window.print();
+    } catch {
+      setPdfLoading(false);
+      window.print();
+    }
   }, []);
 
   /* ─── Premium HD Multi-Page PDF Generation ──────── */
-  const handleDownloadPDF = useCallback(() => {
-    // Native print dialog handles saving as PDF much better, 
-    // producing selectable text and perfect vector rendering.
-    window.print();
+  const handleDownloadPDF = useCallback(async () => {
+    try {
+      setPdfLoading(true);
+      setPdfStage('Preparing high-resolution print PDF…');
+      // Buffer to allow the browser to paint the portal DOM, SVGs, and fonts
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      setPdfLoading(false);
+      window.print();
+    } catch {
+      setPdfLoading(false);
+      window.print();
+    }
   }, []);
 
   /* ─── Loading & Not Found States ────────────────── */
@@ -381,6 +543,7 @@ const ProfilePage = () => {
 
   const { personalInfo = {}, educationInfo = {}, familyInfo = {}, preferences = {} } = biodata;
   const photoURL = biodata.photoURL || personalInfo.photoURL || null;
+  const isOwner = user && (user._id === biodata.userId || user.id === biodata.userId);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -401,30 +564,6 @@ const ProfilePage = () => {
       {/* ─── Overlays ───────────────────────────────── */}
       <PdfLoadingOverlay visible={pdfLoading} stage={pdfStage} />
       <ErrorToast message={pdfError} onClose={() => setPdfError('')} />
-
-      {/* ─── Hidden PDF Capture Template ────────────── */}
-      {/*
-        IMPORTANT: This div is hidden off-screen but fully rendered.
-        During PDF export, we temporarily make it visible at 794px.
-      */}
-      <div
-        ref={pdfTemplateRef}
-        aria-hidden="true"
-        style={{
-          display: 'none',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          zIndex: -9999,
-          visibility: 'hidden',
-          width: '794px',
-          pointerEvents: 'none',
-        }}
-      >
-        <Suspense fallback={null}>
-          <BiodataPDFTemplate biodata={biodata} />
-        </Suspense>
-      </div>
 
       {/* ─── Scroll Progress ─────────────────────────── */}
       <ScrollProgress />
@@ -463,6 +602,17 @@ const ProfilePage = () => {
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-yellow-600/30 to-transparent" />
       </div>
 
+      {/* ─── Theme Gallery Drawer (Owner Only) ────────── */}
+      {isOwner && (
+        <ThemeGalleryDrawer 
+          biodata={biodata} 
+          setBiodata={setBiodata} 
+          DynamicTemplate={DynamicTemplate} 
+          isOpen={isThemeDrawerOpen}
+          setIsOpen={setIsThemeDrawerOpen}
+        />
+      )}
+
       {/* ─── Fixed Back Button ───────────────────────── */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
@@ -483,8 +633,12 @@ const ProfilePage = () => {
 
         {/* Hero Banner */}
         <HeroBanner
+          biodata={biodata}
+          personalInfo={personalInfo}
+          educationInfo={educationInfo}
+          preferences={preferences}
           name={personalInfo.fullName}
-          tagline={preferences.bio || 'Seeking a loving and caring life partner.'}
+          tagline={preferences.bio || preferences.aboutMe || preferences.partnerExpectations || 'Seeking a loving and caring life partner.'}
           photoURL={photoURL}
           photos={
             (biodata?.photos?.length > 0)
@@ -492,10 +646,15 @@ const ProfilePage = () => {
               : photoURL ? [photoURL] : []
           }
           onShare={handleCopyLink}
-          onPrint={handlePrint}
-          onDownload={handleDownloadPDF}
+          onPrint={accessApproved ? handlePrint : undefined}
+          onDownload={accessApproved ? handleDownloadPDF : undefined}
           pdfLoading={pdfLoading}
           copied={copied}
+          onThemeGallery={isOwner ? () => navigate(`/preview/${biodata._id}/${biodata.templateId || 'default'}`) : undefined}
+          accessApproved={accessApproved}
+          requestStatus={requestStatus}
+          onRequestAccess={handleRequestAccessClick}
+          isOwner={isOwner}
         />
 
         {/* Detail Cards */}
@@ -525,138 +684,253 @@ const ProfilePage = () => {
             <EducationCard data={educationInfo} />
           </motion.div>
 
-          <SectionDivider icon="❧" delay={0.2} />
+          {/* If access is NOT approved: Privacy Gate Card */}
+          {!accessApproved ? (
+            <>
+              <SectionDivider icon="✦" delay={0.2} />
 
-          {/* Family */}
-          <motion.div variants={itemVariants}>
-            <FamilyCard data={familyInfo} />
-          </motion.div>
+              <motion.div id="access-request-section" variants={itemVariants}>
+                <Card delay={0.25}>
+                  <Section
+                    icon={<ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />}
+                    title="Biodata Access & Privacy Protection"
+                    accent="gold"
+                  >
+                    <div className="space-y-4">
+                      {requestStatus === 'NONE' && (
+                        <div className="space-y-4">
+                          <p className="text-sm sm:text-base text-gray-300 leading-relaxed font-light">
+                            The candidate's family has protected this biodata. Family background, contact numbers, and printable biodata are confidential.
+                            Please send an access request to connect with this profile.
+                          </p>
 
-          <SectionDivider icon="✦" delay={0.3} />
+                          <div className="space-y-2">
+                            <label className="block text-xs font-medium text-yellow-600/80 uppercase tracking-wider">
+                              Introduce Yourself / Family (Optional)
+                            </label>
+                            <textarea
+                              rows={3}
+                              value={requestMessage}
+                              onChange={(e) => setRequestMessage(e.target.value)}
+                              placeholder="e.g. Namaste, we came across your biodata and would like to connect for a prospective marriage alliance..."
+                              className="w-full px-4 py-3 rounded-xl bg-black/60 border border-yellow-700/30 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-yellow-500 transition-colors"
+                            />
+                          </div>
 
-          {/* Preferences */}
-          {(preferences.partnerExpectations || preferences.hobbies || preferences.preferredLocation) && (
-            <motion.div variants={itemVariants}>
-              <Card delay={0.4}>
-                <Section
-                  icon={<Heart className="w-4 h-4 sm:w-5 sm:h-5" />}
-                  title="Preferences"
-                  accent="gold"
-                >
-                  <div className="space-y-4 sm:space-y-5">
-                    {preferences.partnerExpectations && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        <p className="text-[10px] sm:text-xs text-yellow-600/70 uppercase tracking-[0.15em] sm:tracking-widest font-medium mb-1">
-                          Partner Expectations
-                        </p>
-                        <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-                          {preferences.partnerExpectations}
-                        </p>
-                      </motion.div>
-                    )}
-                    {preferences.hobbies && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
-                      >
-                        <p className="text-[10px] sm:text-xs text-yellow-600/70 uppercase tracking-[0.15em] sm:tracking-widest font-medium mb-1">
-                          Hobbies & Interests
-                        </p>
-                        <p className="text-sm sm:text-base text-gray-300">{Array.isArray(preferences.hobbies) ? preferences.hobbies.join(', ') : preferences.hobbies}</p>
-                      </motion.div>
-                    )}
-                    {preferences.preferredLocation && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                      >
-                        <p className="text-[10px] sm:text-xs text-yellow-600/70 uppercase tracking-[0.15em] sm:tracking-widest font-medium mb-1">
-                          Preferred Location
-                        </p>
-                        <p className="text-sm sm:text-base text-gray-300">{preferences.preferredLocation}</p>
-                      </motion.div>
-                    )}
+                          {requestError && (
+                            <p className="text-xs text-red-400 flex items-center gap-1.5">
+                              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                              {requestError}
+                            </p>
+                          )}
+
+                          <Button
+                            variant="gold"
+                            size="md"
+                            loading={sendingRequest}
+                            onClick={handleSendRequest}
+                            className="w-full sm:w-auto"
+                          >
+                            <Send className="w-4 h-4 mr-1.5" />
+                            Send Access Request
+                          </Button>
+                        </div>
+                      )}
+
+                      {requestStatus === 'PENDING' && (
+                        <div className="p-4 sm:p-5 rounded-2xl bg-amber-950/40 border border-amber-600/40 space-y-3">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-900/60 border border-amber-500/50 text-amber-300 text-xs font-semibold">
+                            <Clock className="w-3.5 h-3.5 animate-pulse" />
+                            <span>Request Pending</span>
+                          </div>
+                          <h4 className="text-base sm:text-lg font-semibold text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
+                            Your Access Request is Awaiting Approval
+                          </h4>
+                          <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">
+                            Your request has been delivered to the biodata owner. Once they review and accept your request, you will automatically unlock complete biodata access, family details, and contact numbers.
+                          </p>
+                          {requestSuccess && (
+                            <p className="text-xs text-emerald-400 font-medium">{requestSuccess}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {requestStatus === 'REJECTED' && (
+                        <div className="p-4 sm:p-5 rounded-2xl bg-red-950/40 border border-red-800/40 space-y-3">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-900/60 border border-red-700/50 text-red-300 text-xs font-semibold">
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span>Request Rejected</span>
+                          </div>
+                          <h4 className="text-base sm:text-lg font-semibold text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
+                            Access Request Declined
+                          </h4>
+                          <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">
+                            The profile owner has declined this access request. If you wish to send an updated note, you can submit a new request below.
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => { setRequestStatus('NONE'); setRequestError(''); setRequestSuccess(''); }}
+                            className="border border-yellow-700/30 text-yellow-400 hover:text-yellow-300 text-xs"
+                          >
+                            Send New Request
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </Section>
+                </Card>
+              </motion.div>
+
+              {/* Locked placeholder for Family & Contact */}
+              <motion.div variants={itemVariants}>
+                <div className="p-6 sm:p-8 rounded-2xl bg-black/40 border border-yellow-700/20 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-yellow-950/50 border border-yellow-700/30 flex items-center justify-center mx-auto text-yellow-500">
+                    <Lock className="w-5 h-5" />
                   </div>
-                </Section>
-              </Card>
-            </motion.div>
-          )}
+                  <h4 className="text-white font-serif text-lg tracking-wide">Family & Contact Details Locked</h4>
+                  <p className="text-gray-400 text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
+                    Personal phone number, email address, family background, and PDF printing are strictly confidential to ensure privacy for candidates and their families.
+                  </p>
+                </div>
+              </motion.div>
+            </>
+          ) : (
+            <>
+              <SectionDivider icon="❧" delay={0.2} />
 
-          <SectionDivider icon="✦" delay={0.4} />
+              {/* Family */}
+              <motion.div variants={itemVariants}>
+                <FamilyCard data={familyInfo} />
+              </motion.div>
 
-          {/* Contact */}
-          {preferences.contactName && (
-            <motion.div variants={itemVariants}>
-              <Card delay={0.5}>
-                <Section
-                  icon={<MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />}
-                  title="Contact Information"
-                  accent="red"
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <motion.div
-                      initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.4 }}
+              <SectionDivider icon="✦" delay={0.3} />
+
+              {/* Preferences */}
+              {(preferences.partnerExpectations || preferences.hobbies || preferences.preferredLocation) && (
+                <motion.div variants={itemVariants}>
+                  <Card delay={0.4}>
+                    <Section
+                      icon={<Heart className="w-4 h-4 sm:w-5 sm:h-5" />}
+                      title="Preferences"
+                      accent="gold"
                     >
-                      <p className="text-[10px] sm:text-xs text-yellow-600/70 uppercase tracking-[0.15em] sm:tracking-widest font-medium mb-1">
-                        Contact Person
-                      </p>
-                      <p className="text-white font-semibold text-sm sm:text-base">
-                        {preferences.contactName}
-                      </p>
-                    </motion.div>
-                    {preferences.contactPhone && (
-                      <motion.div
-                        initial={{ opacity: 0, x: -10 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.4, delay: 0.1 }}
-                      >
-                        <p className="text-[10px] sm:text-xs text-yellow-600/70 uppercase tracking-[0.15em] sm:tracking-widest font-medium mb-1">
-                          Phone
-                        </p>
-                        <a
-                          href={`tel:${preferences.contactPhone}`}
-                          className="text-yellow-400 hover:text-yellow-300 transition-colors duration-300 font-medium text-sm sm:text-base"
+                      <div className="space-y-4 sm:space-y-5">
+                        {preferences.partnerExpectations && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5 }}
+                          >
+                            <p className="text-[10px] sm:text-xs text-yellow-600/70 uppercase tracking-[0.15em] sm:tracking-widest font-medium mb-1">
+                              Partner Expectations
+                            </p>
+                            <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
+                              {preferences.partnerExpectations}
+                            </p>
+                          </motion.div>
+                        )}
+                        {preferences.hobbies && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5, delay: 0.1 }}
+                          >
+                            <p className="text-[10px] sm:text-xs text-yellow-600/70 uppercase tracking-[0.15em] sm:tracking-widest font-medium mb-1">
+                              Hobbies & Interests
+                            </p>
+                            <p className="text-sm sm:text-base text-gray-300">{Array.isArray(preferences.hobbies) ? preferences.hobbies.join(', ') : preferences.hobbies}</p>
+                          </motion.div>
+                        )}
+                        {preferences.preferredLocation && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5, delay: 0.2 }}
+                          >
+                            <p className="text-[10px] sm:text-xs text-yellow-600/70 uppercase tracking-[0.15em] sm:tracking-widest font-medium mb-1">
+                              Preferred Location
+                            </p>
+                            <p className="text-sm sm:text-base text-gray-300">{preferences.preferredLocation}</p>
+                          </motion.div>
+                        )}
+                      </div>
+                    </Section>
+                  </Card>
+                </motion.div>
+              )}
+
+              <SectionDivider icon="✦" delay={0.4} />
+
+              {/* Contact */}
+              {preferences.contactName && (
+                <motion.div variants={itemVariants}>
+                  <Card delay={0.5}>
+                    <Section
+                      icon={<MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />}
+                      title="Contact Information"
+                      accent="red"
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        <motion.div
+                          initial={{ opacity: 0, x: -10 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.4 }}
                         >
-                          {preferences.contactPhone}
-                        </a>
-                      </motion.div>
-                    )}
-                    {preferences.contactEmail && (
-                      <motion.div
-                        initial={{ opacity: 0, x: -10 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.4, delay: 0.2 }}
-                        className="sm:col-span-2"
-                      >
-                        <p className="text-[10px] sm:text-xs text-yellow-600/70 uppercase tracking-[0.15em] sm:tracking-widest font-medium mb-1">
-                          Email
-                        </p>
-                        <a
-                          href={`mailto:${preferences.contactEmail}`}
-                          className="text-yellow-400 hover:text-yellow-300 transition-colors duration-300 text-sm sm:text-base break-all"
-                        >
-                          {preferences.contactEmail}
-                        </a>
-                      </motion.div>
-                    )}
-                  </div>
-                </Section>
-              </Card>
-            </motion.div>
+                          <p className="text-[10px] sm:text-xs text-yellow-600/70 uppercase tracking-[0.15em] sm:tracking-widest font-medium mb-1">
+                            Contact Person
+                          </p>
+                          <p className="text-white font-semibold text-sm sm:text-base">
+                            {preferences.contactName}
+                          </p>
+                        </motion.div>
+                        {preferences.contactPhone && (
+                          <motion.div
+                            initial={{ opacity: 0, x: -10 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.4, delay: 0.1 }}
+                          >
+                            <p className="text-[10px] sm:text-xs text-yellow-600/70 uppercase tracking-[0.15em] sm:tracking-widest font-medium mb-1">
+                              Phone
+                            </p>
+                            <a
+                              href={`tel:${preferences.contactPhone}`}
+                              className="text-yellow-400 hover:text-yellow-300 transition-colors duration-300 font-medium text-sm sm:text-base"
+                            >
+                              {preferences.contactPhone}
+                            </a>
+                          </motion.div>
+                        )}
+                        {preferences.contactEmail && (
+                          <motion.div
+                            initial={{ opacity: 0, x: -10 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.4, delay: 0.2 }}
+                            className="sm:col-span-2"
+                          >
+                            <p className="text-[10px] sm:text-xs text-yellow-600/70 uppercase tracking-[0.15em] sm:tracking-widest font-medium mb-1">
+                              Email
+                            </p>
+                            <a
+                              href={`mailto:${preferences.contactEmail}`}
+                              className="text-yellow-400 hover:text-yellow-300 transition-colors duration-300 text-sm sm:text-base break-all"
+                            >
+                              {preferences.contactEmail}
+                            </a>
+                          </motion.div>
+                        )}
+                      </div>
+                    </Section>
+                  </Card>
+                </motion.div>
+              )}
+            </>
           )}
 
           {/* Closing Quote */}
@@ -667,12 +941,12 @@ const ProfilePage = () => {
       {/* ─── Premium Footer ──────────────────────────── */}
       <PremiumFooter />
 
-      {/* ─── Print Portal — targets #print-biodata-root in index.html ── */}
-      {typeof document !== 'undefined' && (() => {
+      {/* ─── Print Portal — targets #print-biodata-root in index.html (Owner/Approved only) ── */}
+      {typeof document !== 'undefined' && Boolean(biodata) && accessApproved && (() => {
         const printRoot = document.getElementById('print-biodata-root');
         return printRoot ? createPortal(
           <Suspense fallback={null}>
-            <BiodataPDFTemplate biodata={biodata} />
+            <DynamicTemplate biodata={biodata} />
           </Suspense>,
           printRoot
         ) : null;

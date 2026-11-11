@@ -60,22 +60,30 @@
     color: white;
   }
 
+  /* Screen mode — keep print container completely hidden off-screen without interfering with layout */
+  #print-biodata-root {
+    display: none;
+  }
+
   /* ─── Print Media Query ─────────────────────────── */
   @media print {
     html, body {
-      width: 210mm;
-      height: auto;
+      width: 100% !important;
+      height: 100% !important;
+      min-height: 100% !important;
       margin: 0 !important;
       padding: 0 !important;
       overflow: visible !important;
-      background: #180000 !important;
+      background: transparent !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
 
     .print-fixed-bg {
-      position: fixed !important;
+      position: absolute !important;
+      inset: 0 !important;
+      pointer-events: none !important;
     }
 
     /* Hide the main React app */
@@ -88,9 +96,16 @@
       display: block !important;
       visibility: visible !important;
       position: static !important;
-      width: 210mm !important;
+      top: auto !important;
+      left: auto !important;
+      width: 100% !important;
+      max-width: 210mm !important;
       height: auto !important;
+      min-height: 100% !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
       overflow: visible !important;
+      background: transparent !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
@@ -104,6 +119,9 @@
       position: static !important;
       display: block !important;
       width: 100% !important;
+      max-width: 210mm !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
       overflow: visible !important;
     }
 
@@ -112,11 +130,20 @@
       display: none !important;
     }
 
-    /* PDF Page break controls */
+    /* PDF Page break controls — viewport-relative height prevents any overflow onto extra footer pages */
     .pdf-page {
+      width: 100% !important;
+      max-width: 210mm !important;
+      height: 100vh !important;
+      max-height: 100vh !important;
+      margin: 0 auto !important;
+      position: relative !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
       page-break-after: always !important;
       break-after: page !important;
-      overflow: visible !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }

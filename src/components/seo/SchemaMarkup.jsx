@@ -99,7 +99,7 @@ export function PersonProfileSchema({ biodata }) {
     '@type': 'ProfilePage',
     name: `${name}'s Marriage Biodata`,
     description: `View ${name}'s verified marriage biodata on Aguaa${age ? ` (${age} years)` : ''}${city ? ` from ${city}` : ''}. Looking for a loving life partner.`,
-    url: `https://aguaa.in/profile/${biodata._id}`,
+    url: `https://myaguaa.in/profile/${biodata._id}`,
     mainEntity: {
       '@type': 'Person',
       name,
@@ -132,7 +132,7 @@ export function OfferSchema({ plans }) {
         price: plan.price,
         priceCurrency: 'INR',
         availability: 'https://schema.org/InStock',
-        url: 'https://aguaa.in/pricing',
+        url: 'https://myaguaa.in/pricing',
       },
     })),
   };

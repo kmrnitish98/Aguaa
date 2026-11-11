@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
@@ -14,6 +14,8 @@ import logo from "/logo-2.webp";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
   const { login } = useAuth();
   const toast = useToast();
   const [showPassword, setShowPassword] = useState(false);
@@ -30,9 +32,13 @@ const LoginPage = () => {
     setAuthError("");
     try {
       const { user } = await apiLogin({ email: data.email, password: data.password });
+      console.log("[Login] Auth state - received user:", user);
+      console.log("[Login] Current role value:", user.role);
       login(user);
       toast.success(`Welcome back, ${user.name || 'back'}!`);
-      navigate("/dashboard");
+      const redirectPath = user.role === 'admin' ? "/admin" : (redirectParam || "/dashboard");
+      console.log("[Login] Redirecting to:", redirectPath);
+      navigate(redirectPath);
     } catch (err) {
       setAuthError(getErrorMessage(err, 'Sign in failed. Please try again.'));
     }
@@ -53,9 +59,13 @@ const LoginPage = () => {
           return;
         }
         const { user } = await apiGoogleLogin(accessToken);
+        console.log("[Google Login] Auth state - received user:", user);
+        console.log("[Google Login] Current role value:", user.role);
         login(user);
         toast.success(`Welcome, ${user.name || 'back'}!`);
-        navigate("/dashboard");
+        const redirectPath = user.role === 'admin' ? "/admin" : (redirectParam || "/dashboard");
+        console.log("[Google Login] Redirecting to:", redirectPath);
+        navigate(redirectPath);
       } catch (err) {
         setAuthError(getErrorMessage(err, 'Google login failed. Please try again.'));
       } finally {
@@ -210,6 +220,7 @@ const LoginPage = () => {
 
             <div className="mt-6 flex gap-3">
               <button
+                type="button"
                 onClick={() => handleGoogleLogin()}
                 disabled={socialLoading || isSubmitting}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-950/20 border border-red-900/40 text-white hover:bg-red-950/40 transition-colors disabled:opacity-50"

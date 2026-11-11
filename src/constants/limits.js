@@ -13,6 +13,8 @@
 export const PAGINATION = {
   /** Public Explore page — profiles per page */
   EXPLORE_PAGE_SIZE: 12,
+  /** Homepage — maximum featured profiles shown */
+  HOMEPAGE_PROFILES_LIMIT: 8,
   /** Dashboard — my biodatas (usually small, no pagination needed yet) */
   DASHBOARD_PAGE_SIZE: 20,
 };

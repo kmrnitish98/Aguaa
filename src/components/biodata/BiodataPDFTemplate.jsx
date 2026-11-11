@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { getQuoteForPage } from '../../utils/quotes';
 
 /* ══════════════════════════════════════════════════════════════
    LUXURY INDIAN WEDDING BIODATA — PREMIUM PDF TEMPLATE v3.0
@@ -438,9 +439,17 @@ const PageHeader = ({ name, isFirst, bio }) => (
 );
 
 /* ─── Page Footer ────────────────────────────────────────────── */
-const PageFooter = ({ current, total }) => (
-  <div style={{ position:'absolute',bottom:'8px',left:0,right:0,textAlign:'center',zIndex:5 }}>
-    <div style={{ height:'1px',width:'55%',margin:'0 auto 5px',
+const PageFooter = ({ current, total, quote }) => (
+  <div style={{ position:'absolute',bottom:'10px',left:0,right:0,textAlign:'center',zIndex:5 }}>
+    {quote && (
+      <div style={{ marginBottom: '16px', padding: '0 40px' }}>
+        <p style={{ margin:0, fontSize:'12.5px', color:'rgba(212,160,23,0.85)',
+          fontStyle:'italic', letterSpacing:'0.04em', fontFamily: FONT_CORMNT, lineHeight:'1.5' }}>
+          ❝ {quote} ❞
+        </p>
+      </div>
+    )}
+    <div style={{ height:'1px',width:'55%',margin:'0 auto 6px',
       background:'linear-gradient(90deg,transparent,rgba(212,160,23,0.38),transparent)' }}/>
     <span style={{ fontSize:'8.5px', color:'rgba(212,160,23,0.4)',
       letterSpacing:'0.22em', textTransform:'uppercase', fontFamily: FONT_INTER }}>
@@ -450,22 +459,23 @@ const PageFooter = ({ current, total }) => (
 );
 
 /* ─── A4 Page Shell ──────────────────────────────────────────── */
-const A4Page = ({ children, name, bio, pageIdx = 0, totalPages = 2 }) => (
+const A4Page = ({ children, name, bio, pageIdx = 0, totalPages = 3, quote }) => (
   <div className="pdf-page" style={{
     width:'100%', margin:'0 auto',
     background: C.pageBg, backgroundColor: C.pageBgSolid,
-    color: C.text, position:'relative', overflow:'visible',
+    color: C.text, position:'relative', overflow:'hidden',
     fontFamily: FONT_INTER, boxSizing:'border-box',
     WebkitPrintColorAdjust:'exact', printColorAdjust:'exact',
+    pageBreakAfter: pageIdx < totalPages - 1 ? 'always' : 'auto',
   }}>
-    <div className="print-fixed-bg">
+    <div className="print-fixed-bg" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
       <PageFrame />
       <MandalaWatermark />
 
-      <FloralCorner position="TL" uid={`pTL`} />
-      <FloralCorner position="TR" uid={`pTR`} />
-      <FloralCorner position="BL" uid={`pBL`} />
-      <FloralCorner position="BR" uid={`pBR`} />
+      <FloralCorner position="TL" uid={`pTL${pageIdx}`} />
+      <FloralCorner position="TR" uid={`pTR${pageIdx}`} />
+      <FloralCorner position="BL" uid={`pBL${pageIdx}`} />
+      <FloralCorner position="BR" uid={`pBR${pageIdx}`} />
     </div>
 
     {/* Ambient glow blobs */}
@@ -476,13 +486,13 @@ const A4Page = ({ children, name, bio, pageIdx = 0, totalPages = 2 }) => (
       borderRadius:'50%',background:'radial-gradient(circle,rgba(150,18,18,0.055) 0%,transparent 70%)',
       pointerEvents:'none',zIndex:0 }}/>
 
-    <PageHeader name={name} isFirst={true} bio={bio} />
+    <PageHeader name={name} isFirst={pageIdx === 0} bio={pageIdx === 0 ? bio : null} />
 
-    <div style={{ position:'relative', zIndex:5, padding:'20px 26px', paddingBottom:'42px' }}>
+    <div style={{ position:'relative', zIndex:5, padding:'20px 26px', paddingBottom: quote ? '90px' : '42px' }}>
       {children}
     </div>
 
-    <PageFooter current={pageIdx+1} total={totalPages} />
+    <PageFooter current={pageIdx+1} total={totalPages} quote={quote} />
   </div>
 );
 
@@ -673,7 +683,10 @@ const BiodataPDFTemplate = React.forwardRef(({ biodata }, ref) => {
   const hasPref   = !!(partnerExpectations||hobbies||preferredLocation);
   const hasContact= !!(contactName||contactPhone||contactEmail);
 
-  const totalPages = 2;
+  const totalPages = 3;
+  const p1Quote = getQuoteForPage(1, fullName);
+  const p2Quote = getQuoteForPage(2, fullName);
+  const p3Quote = getQuoteForPage(3, fullName);
 
   /* ─── Page 1: Hero two-column + About Me ─────────────────── */
   const Page1Content = () => (
@@ -859,7 +872,12 @@ const BiodataPDFTemplate = React.forwardRef(({ biodata }, ref) => {
           </div>
         </SectionCard>
       )}
+    </>
+  );
 
+  /* ─── Page 3: Contact, Gallery & Footer ──────────────────── */
+  const Page3Content = () => (
+    <>
       {/* Contact + QR Code */}
       {hasContact && (
         <SectionCard>
@@ -872,35 +890,33 @@ const BiodataPDFTemplate = React.forwardRef(({ biodata }, ref) => {
               <InfoRow label="Phone Number"   value={contactPhone} />
               {contactEmail && <InfoRow label="Email Address" value={contactEmail} fullWidth />}
             </div>
-            {/* QR Code */}
             <QRPlaceholder url={typeof window !== 'undefined' ? window.location.href : ''} />
           </div>
         </SectionCard>
       )}
 
-      {/* Photo Gallery (extra photos) */}
-      {extraPhotos.length > 0 && (
-        <SectionCard>
+      {/* Photo Gallery */}
+      <SectionCard style={{ padding: '24px', minHeight: '260px' }}>
+        {extraPhotos.length > 0 ? (
           <PhotoGrid photos={extraPhotos} mainPhoto={mainPhotoURL} />
-        </SectionCard>
-      )}
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '200px', opacity: 0.6 }}>
+            <FloralDivider style={{ width: '80%', margin: '16px 0' }} />
+            <div style={{ fontSize: '36px', marginBottom: '8px' }}>📸</div>
+            <p style={{ fontFamily: FONT_CORMNT, fontStyle: 'italic', color: C.text, fontSize: '15px' }}>
+              A picture is worth a thousand words...
+            </p>
+            <FloralDivider style={{ width: '80%', margin: '16px 0' }} />
+          </div>
+        )}
+      </SectionCard>
 
-      {/* Elegant closing */}
-      <div style={{
-        textAlign:'center', padding:'11px 22px', marginTop:'4px',
-        background:'linear-gradient(135deg,rgba(48,7,7,0.62),rgba(22,3,3,0.45))',
-        border:`1px solid ${C.borderGoldF}`, borderRadius:'11px',
-        position:'relative', overflow:'hidden',
-        pageBreakInside:'avoid', breakInside:'avoid',
-      }}>
-        <FloralDivider style={{ marginBottom:'10px' }}/>
-        <p style={{ margin:'0', fontSize:'12.5px', color:'rgba(245,237,220,0.65)',
-          fontStyle:'italic', letterSpacing:'0.05em',
-          fontFamily: FONT_CORMNT, lineHeight:'1.8' }}>
+      {/* Page 3 Grand Final Note */}
+      <SectionCard style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px' }}>
+        <p style={{ margin: 0, fontSize: '14px', color: 'rgba(212,160,23,0.85)', fontStyle: 'italic', letterSpacing: '0.05em', fontFamily: FONT_CORMNT, lineHeight: '1.8', textAlign: 'center' }}>
           "Looking for an auspicious alliance built on mutual respect, love, and shared values."
         </p>
-        <FloralDivider style={{ marginTop:'10px' }}/>
-      </div>
+      </SectionCard>
     </>
   );
 
@@ -908,9 +924,16 @@ const BiodataPDFTemplate = React.forwardRef(({ biodata }, ref) => {
     <div ref={ref} id="biodata-pdf-root" className="print-container pdf-render-container"
       style={{ background:'#0a0000', WebkitPrintColorAdjust:'exact', printColorAdjust:'exact' }}>
       
-      <A4Page name={fullName} bio={bio}>
+      <A4Page name={fullName} bio={bio} pageIdx={0} totalPages={totalPages} quote={p1Quote}>
         <Page1Content />
+      </A4Page>
+
+      <A4Page name={fullName} pageIdx={1} totalPages={totalPages} quote={p2Quote}>
         <Page2Content />
+      </A4Page>
+
+      <A4Page name={fullName} pageIdx={2} totalPages={totalPages} quote={p3Quote}>
+        <Page3Content />
       </A4Page>
 
     </div>

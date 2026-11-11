@@ -91,8 +91,8 @@ export default function AboutPage() {
       {/* Breadcrumb Schema for rich results */}
       <BreadcrumbSchema
         items={[
-          { name: 'Home', url: 'https://aguaa.in/' },
-          { name: 'About Aguaa', url: 'https://aguaa.in/about' },
+          { name: 'Home', url: 'https://myaguaa.in/' },
+          { name: 'About Aguaa', url: 'https://myaguaa.in/about' },
         ]}
       />
 

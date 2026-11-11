@@ -34,6 +34,12 @@ export {
   // Biodata
   getPublicBiodatas  as apiGetPublicBiodatas,
   getBiodataById     as apiGetBiodataById,
+  getBiodataPreview  as apiGetBiodataPreview,
+  getBiodataRequestStatus as apiGetBiodataRequestStatus,
+  sendBiodataRequest as apiSendBiodataRequest,
+  getReceivedBiodataRequests as apiGetReceivedBiodataRequests,
+  getSentBiodataRequests as apiGetSentBiodataRequests,
+  updateBiodataRequestStatus as apiUpdateBiodataRequestStatus,
   getPrivateBiodata  as apiGetPrivateBiodata,
   getMyBiodatas      as apiGetMyBiodatas,
   createBiodata      as apiCreateBiodata,

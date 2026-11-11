@@ -255,7 +255,7 @@ const Step1 = ({ register, errors, watch, setValue, t, lang, languagesKnown, set
 
       {/* Caste + Gotra */}
       <InputField label={t('caste')} name="personalInfo.caste" register={register}
-        errors={errors.personalInfo} placeholder={t('castePlaceholder')} lang={lang} />
+        errors={errors.personalInfo} placeholder={t('castePlaceholder')} required lang={lang} />
       <InputField label={t('gotra')} name="personalInfo.gotra" register={register}
         errors={errors.personalInfo} placeholder={t('gotraPlaceholder')} lang={lang} />
 
@@ -932,7 +932,7 @@ const CreateBiodataPage = () => {
 
   // ── Navigation ──
   const fieldsToValidate = {
-    1: ['personalInfo.fullName', 'personalInfo.dob'],
+    1: ['personalInfo.fullName', 'personalInfo.dob', 'personalInfo.caste'],
     2: ['educationInfo.highestQualification'],
     3: [],
     4: ['preferences.contactName', 'preferences.contactPhone'],

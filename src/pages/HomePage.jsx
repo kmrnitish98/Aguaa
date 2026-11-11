@@ -19,6 +19,7 @@ import {
   Share2,
   QrCode,
   Lock,
+  ChevronLeft,
   ChevronRight,
   Check,
   Quote,
@@ -136,29 +137,31 @@ const HomePage = () => {
   const { currentUser } = useAuth();
   useSEO("/");
   const [search, setSearch] = useState("");
-  const [error, setError] = useState(null);
   const [activeBg, setActiveBg] = useState(0);
   const [activeFaq, setActiveFaq] = useState(null);
-  const [galleryLimit, setGalleryLimit] = useState(8);
-  const [activeFilter, setActiveFilter] = useState("All");
-  const [showGalleryUpload, setShowGalleryUpload] = useState(false);
+  const galleryLimit = 8;
 
-  // ── Public biodatas — React Query (shared cache with ExplorePage) ──
+
+  // ── Public biodatas — React Query (homepage limits to 8 latest profiles) ──
   const {
     data: biodataResult,
     isLoading: loading,
-    isError: isQueryError,
+    isError,
+    error: queryError,
+    refetch: refetchBiodatas,
   } = useQuery({
-    queryKey: QUERY_KEYS.biodata.public({ page: 1, search: "", filter: "All" }),
-    queryFn: ({ signal }) => getPublicBiodatas({ signal }),
+    queryKey: QUERY_KEYS.biodata.public({ page: 1, limit: 8, search: "", filter: "All" }),
+    queryFn: ({ signal }) => getPublicBiodatas({ page: 1, limit: 8, signal }),
     staleTime: CACHE.PUBLIC_BIODATAS_STALE_MS,
     gcTime: CACHE.GC_TIME_MS,
   });
 
-  // Normalise: getPublicBiodatas returns { data, total, ... } or plain array
+  const error = isError ? (queryError?.message || "Failed to load biodata profiles.") : null;
+
+  // Normalise: getPublicBiodatas returns { biodatas, data, ... } or plain array
   const biodatas = Array.isArray(biodataResult)
     ? biodataResult
-    : (biodataResult?.data ?? []);
+    : (biodataResult?.biodatas ?? biodataResult?.data ?? []);
 
   // CountUp refs
   const { count: countFamilies, ref: refFamilies } = useCountUp(10, 2500);
@@ -179,23 +182,158 @@ const HomePage = () => {
     [],
   );
 
+  // ── Responsive desktop check for Hero background videos (Tailwind lg breakpoint: 1024px) ──
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.matchMedia("(min-width: 1024px)").matches;
+    }
+    return false;
+  });
+
+  const videoRefs = useRef([]);
+
+  // Listen for viewport changes across mobile/tablet (< 1024px) and desktop (>= 1024px)
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const handleMediaChange = (e) => {
+      setIsDesktop(e.matches);
+    };
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", handleMediaChange);
+    } else {
+      mediaQuery.addListener(handleMediaChange);
+    }
+
+    return () => {
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener("change", handleMediaChange);
+      } else {
+        mediaQuery.removeListener(handleMediaChange);
+      }
+    };
+  }, []);
+
+  // Desktop only: 5s interval to rotate active accordion panel while all 4 videos play
+  useEffect(() => {
+    if (!isDesktop) return;
     const interval = setInterval(() => {
       setActiveBg((prev) => (prev + 1) % BACKGROUND_VIDEOS.length);
     }, 5000);
     return () => clearInterval(interval);
+  }, [isDesktop]);
+
+  // Synchronize video playback based on screen size (isDesktop) and activeBg
+  useEffect(() => {
+    videoRefs.current.forEach((video, i) => {
+      if (!video) return;
+      video.muted = true;
+
+      if (isDesktop) {
+        // Desktop: all videos play simultaneously in a loop
+        video.loop = true;
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {});
+        }
+      } else {
+        // Mobile & Tablet: sequential playback (only 1 video plays at a time)
+        video.loop = false;
+        if (i === activeBg) {
+          if (video.ended) {
+            try {
+              video.currentTime = 0;
+            } catch { /* ignore playback reset error */ }
+          }
+          const playPromise = video.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(() => {});
+          }
+        } else {
+          video.pause();
+          try {
+            video.currentTime = 0;
+          } catch { /* ignore playback reset error */ }
+        }
+      }
+    });
+  }, [isDesktop, activeBg]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    const currentVideos = videoRefs.current;
+    return () => {
+      currentVideos.forEach((video) => {
+        if (video) {
+          video.pause();
+        }
+      });
+    };
   }, []);
+
+  // Slide navigation handlers for mobile/tablet carousel
+  const goToNextSlide = useCallback(() => {
+    setActiveBg((prev) => (prev + 1) % BACKGROUND_VIDEOS.length);
+  }, []);
+
+  const goToPrevSlide = useCallback(() => {
+    setActiveBg((prev) => (prev - 1 + BACKGROUND_VIDEOS.length) % BACKGROUND_VIDEOS.length);
+  }, []);
+
+  const goToSlide = useCallback((index) => {
+    setActiveBg(index);
+  }, []);
+
+  // Sequential advance when current video finishes on mobile/tablet
+  const handleVideoEnded = (index) => {
+    if (!isDesktop && activeBg === index) {
+      goToNextSlide();
+    }
+  };
+
+  // Gracefully handle video playback or loading error on mobile/tablet
+  const handleVideoError = (index) => {
+    if (!isDesktop && activeBg === index) {
+      goToNextSlide();
+    }
+  };
+
+  // Touch swipe support for mobile/tablet carousel
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+
+  const handleTouchStart = (e) => {
+    if (e.touches && e.touches.length > 0) {
+      touchStartX.current = e.touches[0].clientX;
+      touchStartY.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    if (!e.changedTouches || e.changedTouches.length === 0) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const deltaX = touchStartX.current - touchEndX;
+    const deltaY = touchStartY.current - touchEndY;
+
+    // Minimum swipe threshold 40px and horizontal movement must dominate
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 40) {
+      if (deltaX > 0) {
+        goToNextSlide();
+      } else {
+        goToPrevSlide();
+      }
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
 
   const filtered = biodatas.filter((b) => {
     const name = b.personalInfo?.fullName?.toLowerCase() || "";
     const city = b.personalInfo?.city?.toLowerCase() || "";
     const q = search.toLowerCase();
-
-    if (activeFilter !== "All") {
-      // Mock filtering for design purposes
-      if (activeFilter === "Religion" && !b.personalInfo?.religion)
-        return false;
-    }
 
     return name.includes(q) || city.includes(q);
   });
@@ -208,27 +346,122 @@ const HomePage = () => {
 
       {/* ================= HERO SECTION ================= */}
       <section className="relative min-h-screen flex items-center pt-8 pb-[56px] lg:pb-[96px] lg:pt-16 overflow-hidden">
-        {/* Animated Accordion Video Background */}
-        <div className="absolute inset-0 z-0 flex w-full h-full overflow-hidden opacity-90">
-          {BACKGROUND_VIDEOS.map((src, i) => (
+        {/* ================= HERO BACKGROUND: RESPONSIVE VIDEO PRESENTATION ================= */}
+        {isDesktop ? (
+          /* Desktop (1024px+): Original 4-Column Accordion (all 4 videos simultaneous) */
+          <div className="absolute inset-0 z-0 flex w-full h-full overflow-hidden opacity-90">
+            {BACKGROUND_VIDEOS.map((src, i) => (
+              <div
+                key={i}
+                className={`relative h-full transition-all duration-1000 ease-[cubic-bezier(0.25,0.1,0.25,1)] cursor-default overflow-hidden border-r border-[#d4a017]/10 last:border-r-0 ${activeBg === i ? "flex-[2] md:flex-[3]" : "flex-1"} hover:flex-[2.5]`}
+                onMouseEnter={() => {
+                  if (isDesktop) setActiveBg(i);
+                }}
+              >
+                <video
+                  ref={(el) => (videoRefs.current[i] = el)}
+                  src={src}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  className="absolute inset-0 w-full h-full object-cover scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0f0a00]/90 via-[#0f0a00]/40 to-[#0f0a00]/80" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Mobile & Tablet (< 1024px): Single-Slide Full-Width Carousel */
+          <div
+            className="absolute inset-0 z-0 w-full h-full overflow-hidden"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            {/* Sliding Track with smooth horizontal transition */}
             <div
-              key={i}
-              className={`relative h-full transition-all duration-1000 ease-[cubic-bezier(0.25,0.1,0.25,1)] cursor-default overflow-hidden border-r border-[#d4a017]/10 last:border-r-0 ${activeBg === i ? "flex-[2] md:flex-[3]" : "flex-1"} hover:flex-[2.5]`}
-              onMouseEnter={() => setActiveBg(i)}
+              className="flex h-full w-full transition-transform duration-500 ease-out"
+              style={{ transform: `translateX(-${activeBg * 100}%)` }}
             >
-              <video
-                src={src}
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload={activeBg === i ? "auto" : "none"}
-                className="absolute inset-0 w-full h-full object-cover scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0f0a00]/90 via-[#0f0a00]/40 to-[#0f0a00]/80" />
+              {BACKGROUND_VIDEOS.map((src, i) => (
+                <div
+                  key={i}
+                  className="w-full h-full flex-shrink-0 relative overflow-hidden"
+                >
+                  <video
+                    ref={(el) => (videoRefs.current[i] = el)}
+                    src={src}
+                    autoPlay={activeBg === i}
+                    loop={false}
+                    muted
+                    playsInline
+                    preload={activeBg === i ? "auto" : "none"}
+                    onEnded={() => handleVideoEnded(i)}
+                    onError={() => handleVideoError(i)}
+                    className="absolute inset-0 w-full h-full object-cover scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0f0a00]/90 via-[#0f0a00]/40 to-[#0f0a00]/80 pointer-events-none" />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+
+            {/* Tablet Side Controls (visible on tablet screens 768px-1023px) */}
+            <button
+              type="button"
+              onClick={goToPrevSlide}
+              aria-label="Previous video slide"
+              className="hidden md:flex lg:hidden absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[#0f0a00]/70 backdrop-blur-md border border-[#d4a017]/30 text-[#d4a017] items-center justify-center opacity-80 hover:opacity-100 transition-all active:scale-95 pointer-events-auto"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <button
+              type="button"
+              onClick={goToNextSlide}
+              aria-label="Next video slide"
+              className="hidden md:flex lg:hidden absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[#0f0a00]/70 backdrop-blur-md border border-[#d4a017]/30 text-[#d4a017] items-center justify-center opacity-80 hover:opacity-100 transition-all active:scale-95 pointer-events-auto"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+
+            {/* Bottom Control Bar: Prev/Next + Pagination Dots */}
+            <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-[#0f0a00]/75 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#d4a017]/25 pointer-events-auto shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+              <button
+                type="button"
+                onClick={goToPrevSlide}
+                aria-label="Previous slide"
+                className="p-1 rounded-full text-[#d4a017]/80 hover:text-[#d4a017] hover:bg-[#d4a017]/10 transition-colors active:scale-90"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-center gap-1.5 px-1">
+                {BACKGROUND_VIDEOS.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => goToSlide(i)}
+                    aria-label={`Go to slide ${i + 1}`}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      activeBg === i
+                        ? "w-6 bg-[#d4a017] shadow-[0_0_8px_rgba(212,160,23,0.6)]"
+                        : "w-2 bg-[#d4a017]/30 hover:bg-[#d4a017]/60"
+                    }`}
+                  />
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={goToNextSlide}
+                aria-label="Next slide"
+                className="p-1 rounded-full text-[#d4a017]/80 hover:text-[#d4a017] hover:bg-[#d4a017]/10 transition-colors active:scale-90"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           {particles.map((p) => (
@@ -842,7 +1075,7 @@ const HomePage = () => {
               Explore <span className="text-[#f0c040] italic">Profiles</span>
             </h3>
 
-            <div className="max-w-2xl mx-auto flex flex-col items-center gap-6">
+            <div className="max-w-2xl mx-auto">
               <div className="w-full relative group">
                 <div className="absolute inset-0 bg-gradient-to-r from-[#d4a017] to-[#f0c040] rounded-full blur-md opacity-20 group-hover:opacity-40 transition-opacity" />
                 <div className="relative flex items-center bg-[#1f1500] border border-[#d4a017]/50 rounded-full p-2 backdrop-blur-md">
@@ -856,22 +1089,6 @@ const HomePage = () => {
                   />
                 </div>
               </div>
-
-              <div className="flex gap-3 overflow-x-auto pb-2 max-w-full no-scrollbar">
-                {["All", "Religion", "Age", "Location"].map((filter) => (
-                  <button
-                    key={filter}
-                    onClick={() => setActiveFilter(filter)}
-                    className={`px-6 py-2 rounded-full border text-sm whitespace-nowrap transition-all ${
-                      activeFilter === filter
-                        ? "bg-[#d4a017] border-[#d4a017] text-[#0f0a00] font-medium shadow-[0_0_15px_rgba(212,160,23,0.4)]"
-                        : "bg-[#1f1500] border-[#d4a017]/30 text-[#a89060] hover:border-[#d4a017]/70"
-                    }`}
-                  >
-                    {filter}
-                  </button>
-                ))}
-              </div>
             </div>
           </motion.div>
 
@@ -884,7 +1101,7 @@ const HomePage = () => {
               <p className="text-amber-500 mb-4">{error}</p>
               <Button
                 variant="outline"
-                onClick={() => window.location.reload()}
+                onClick={() => refetchBiodatas()}
               >
                 Retry
               </Button>
@@ -904,21 +1121,37 @@ const HomePage = () => {
               )}
             </div>
           ) : (
-            <div className="flex overflow-x-auto gap-5 pb-8 snap-x no-scrollbar px-4 -mx-4 lg:mx-0 lg:px-0 lg:grid lg:grid-cols-4">
-              {filtered.slice(0, 8).map((biodata, idx) => (
-                <motion.div
-                  key={biodata._id}
-                  variants={fadeUpVariant}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true, amount: 0.1 }}
-                  custom={idx * 0.08}
-                  className="min-w-[220px] lg:min-w-0 snap-center"
-                >
-                  <BiodataCard biodata={biodata} />
-                </motion.div>
-              ))}
-            </div>
+            <>
+              <div className="flex overflow-x-auto gap-5 pb-8 snap-x no-scrollbar px-4 -mx-4 lg:mx-0 lg:px-0 lg:grid lg:grid-cols-4">
+                {filtered.slice(0, 8).map((biodata, idx) => (
+                  <motion.div
+                    key={biodata._id}
+                    variants={fadeUpVariant}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.1 }}
+                    custom={idx * 0.08}
+                    className="min-w-[220px] lg:min-w-0 snap-center"
+                  >
+                    <BiodataCard biodata={biodata} />
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Explore All Profiles Action */}
+              <div className="mt-8 text-center">
+                <Link to="/explore">
+                  <Button
+                    variant="gold"
+                    size="lg"
+                    className="px-8 py-3.5 text-base shadow-[0_0_25px_rgba(212,160,23,0.3)] hover:shadow-[0_0_35px_rgba(212,160,23,0.5)] transition-all inline-flex items-center gap-2"
+                  >
+                    <span>View More</span>
+                    <ArrowRight className="w-5 h-5 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            </>
           )}
         </div>
       </section>
@@ -1706,7 +1939,7 @@ const HomePage = () => {
                 Create Now
               </Button>
             </Link>
-            <a href="#explore">
+           <Link to="/explore">
               <Button
                 variant="outline"
                 size="xl"
@@ -1714,7 +1947,7 @@ const HomePage = () => {
               >
                 Explore Templates
               </Button>
-            </a>
+            </Link>
           </div>
         </motion.div>
       </section>

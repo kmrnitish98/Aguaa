@@ -75,9 +75,10 @@ export const useBiodatasQuery = ({
 
   return {
     // Data
-    biodatas:   query.data?.data       ?? [],
-    total:      query.data?.total      ?? 0,
-    totalPages: query.data?.totalPages ?? 1,
+    biodatas:   query.data?.biodatas   ?? query.data?.data ?? [],
+    pagination: query.data?.pagination ?? { currentPage: page, totalPages: query.data?.totalPages ?? 1, totalProfiles: query.data?.total ?? 0, limit: PAGINATION.EXPLORE_PAGE_SIZE },
+    total:      query.data?.pagination?.totalProfiles ?? query.data?.total ?? 0,
+    totalPages: query.data?.pagination?.totalPages ?? query.data?.totalPages ?? 1,
     hasMore:    query.data?.hasMore    ?? false,
 
     // State

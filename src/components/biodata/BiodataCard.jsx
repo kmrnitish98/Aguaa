@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { MapPin, GraduationCap, ExternalLink, Heart, Sparkles } from 'lucide-react';
+import { MapPin, GraduationCap, ExternalLink, Heart, Sparkles, Clock, XCircle } from 'lucide-react';
 import { optimizeImage } from '../../utils/image';
+import { useAuth } from '../../hooks/useAuth';
 
 // Calculate age from DOB string
 const calculateAge = (dob) => {
@@ -15,7 +16,8 @@ const calculateAge = (dob) => {
   return age > 0 ? age : null;
 };
 
-const BiodataCard = ({ biodata }) => {
+const BiodataCard = ({ biodata, requestStatus = null }) => {
+  const { currentUser } = useAuth();
   const {
     _id,
     personalInfo = {},
@@ -24,6 +26,7 @@ const BiodataCard = ({ biodata }) => {
   } = biodata;
 
   const name = personalInfo.fullName || 'Anonymous';
+  const caste = personalInfo.caste?.trim() || '';
   const city = personalInfo.city || '';
   const state = personalInfo.state || '';
   const dob = personalInfo.dob || '';
@@ -32,6 +35,10 @@ const BiodataCard = ({ biodata }) => {
   const age = calculateAge(dob);
 
   const location = [city, state].filter(Boolean).join(', ');
+
+  const viewDestination = currentUser
+    ? `/profile/${_id}`
+    : `/login?redirect=${encodeURIComponent(`/profile/${_id}`)}`;
 
   const initials = name
     .split(' ')
@@ -173,6 +180,13 @@ const BiodataCard = ({ biodata }) => {
           {name}
         </h3>
 
+        {/* Caste immediately below name (small, subtle font, hidden if unavailable) */}
+        {caste && (
+          <p className="text-[11px] font-medium text-yellow-600/75 text-center tracking-wider uppercase -mt-0.5 truncate">
+            {caste}
+          </p>
+        )}
+
         {/* Gold ornament divider */}
         <div className="flex items-center justify-center gap-2 my-2">
           <div className="h-px flex-1" style={{ background: 'linear-gradient(to right, transparent, rgba(212,160,23,0.6))' }} />
@@ -214,22 +228,42 @@ const BiodataCard = ({ biodata }) => {
           )}
         </div>
 
-        {/* View Button */}
-        <Link
-          to={`/profile/${_id}`}
-          aria-label={`View biodata of ${name}`}
-          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-semibold transition-all duration-300
-            group-hover:shadow-[0_0_20px_rgba(212,160,23,0.35)] group-hover:border-yellow-600/60"
-          style={{
-            background: 'linear-gradient(135deg, rgba(139,0,0,0.7), rgba(90,0,0,0.9))',
-            border: '1px solid rgba(212,160,23,0.4)',
-            color: '#f0c040',
-          }}
-        >
-          <Heart className="w-3.5 h-3.5 fill-current opacity-70" aria-hidden="true" />
-          View Biodata
-          <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
-        </Link>
+        {/* View / Request Status Button */}
+        {requestStatus === 'PENDING' ? (
+          <Link
+            to={viewDestination}
+            aria-label={`Access request pending for ${name}`}
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-semibold bg-amber-950/50 border border-amber-600/50 text-amber-400 hover:bg-amber-900/40 transition-colors"
+          >
+            <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+            Request Pending
+          </Link>
+        ) : requestStatus === 'REJECTED' ? (
+          <Link
+            to={viewDestination}
+            aria-label={`Access request rejected for ${name}`}
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-semibold bg-red-950/50 border border-red-800/50 text-red-400 hover:bg-red-900/40 transition-colors"
+          >
+            <XCircle className="w-3.5 h-3.5" aria-hidden="true" />
+            Request Rejected
+          </Link>
+        ) : (
+          <Link
+            to={viewDestination}
+            aria-label={`View biodata of ${name}`}
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-semibold transition-all duration-300
+              group-hover:shadow-[0_0_20px_rgba(212,160,23,0.35)] group-hover:border-yellow-600/60"
+            style={{
+              background: 'linear-gradient(135deg, rgba(139,0,0,0.7), rgba(90,0,0,0.9))',
+              border: '1px solid rgba(212,160,23,0.4)',
+              color: '#f0c040',
+            }}
+          >
+            <Heart className="w-3.5 h-3.5 fill-current opacity-70" aria-hidden="true" />
+            View Biodata
+            <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
+          </Link>
+        )}
       </div>
     </motion.div>
   );

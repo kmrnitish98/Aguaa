@@ -9,24 +9,24 @@ import { http } from './http';
 
 /**
  * Register a new user.
- * @param {{ name: string, email: string, password: string }} payload
+ * @param {{ name: string, mobile: string, email: string, password: string }} payload
  * @returns {Promise<{ user: object }>}
  */
-export const signUp = ({ name, email, password }) =>
+export const signUp = ({ name, mobile, email, password }) =>
   http('/auth/signup', {
     method: 'POST',
-    body: JSON.stringify({ name, email, password }),
+    body: JSON.stringify({ name, mobile, email, password }),
   });
 
 /**
- * Log in with email and password.
- * @param {{ email: string, password: string }} payload
+ * Log in with email/mobile and password.
+ * @param {{ email?: string, mobile?: string, identifier?: string, password: string }} payload
  * @returns {Promise<{ user: object }>}
  */
-export const login = ({ email, password }) =>
+export const login = ({ email, mobile, identifier, password }) =>
   http('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, mobile, identifier, password }),
   });
 
 /**

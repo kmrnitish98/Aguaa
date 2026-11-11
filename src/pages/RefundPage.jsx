@@ -145,7 +145,7 @@ const sections = [
     contacts: [
       { label: "Email", value: "refunds@biodata.in" },
       { label: "Support Email", value: "support@aguaa.in" },
-      { label: "Website", value: "aguaa.in/contact" },
+      { label: "Website", value: "myaguaa.in/contact" },
     ],
   },
 ];

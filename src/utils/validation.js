@@ -2,7 +2,7 @@
  * validation.js — Shared react-hook-form validation rule objects.
  *
  * Usage:
- *   import { emailRules, passwordRules, nameRules } from '../utils/validation';
+ *   import { emailRules, passwordRules, nameRules, mobileRules, optionalEmailRules } from '../utils/validation';
  *   <input {...register('email', emailRules)} />
  */
 
@@ -16,11 +16,32 @@ export const nameRules = {
   },
 };
 
+export const mobileRules = {
+  required: 'Mobile number is required',
+  validate: (value) => {
+    if (!value || !value.trim()) return 'Mobile number is required';
+    const cleaned = value.replace(/[\s-]/g, '');
+    const valid = /^(?:\+91|0)?[6-9]\d{9}$/.test(cleaned);
+    return valid || 'Please enter a valid 10-digit mobile number';
+  },
+};
+
 export const emailRules = {
   required: 'Email address is required',
   pattern: {
     value: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
     message: 'Please enter a valid email address',
+  },
+  maxLength: { value: 254, message: 'Email address is too long' },
+};
+
+export const optionalEmailRules = {
+  validate: (value) => {
+    if (!value || !value.trim()) return true;
+    return (
+      /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim()) ||
+      'Please enter a valid email address'
+    );
   },
   maxLength: { value: 254, message: 'Email address is too long' },
 };

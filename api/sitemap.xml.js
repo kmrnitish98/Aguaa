@@ -4,34 +4,74 @@
 // This is a SERVER-SIDE runtime variable — NOT the Vite VITE_API_URL build-time variable.
 
 /* global process */
-const BACKEND_URL = process.env.BACKEND_URL;
 
 export default async function handler(req, res) {
   try {
+    const rawBackend =
+      process.env.BACKEND_URL ||
+      process.env.VITE_BACKEND_URL ||
+      (process.env.VITE_API_URL ? process.env.VITE_API_URL.replace(/\/api\/?$/, '') : '') ||
+      '';
+    const BACKEND_URL = rawBackend.replace(/\/+$/, '');
+
     let profileUrls = [];
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
     // Fetch public profile IDs from the backend if BACKEND_URL is configured.
-    // The /api/biodata/public endpoint returns full biodata objects —
-    // we extract only the _id field to build profile URLs.
+    // The /api/biodata/public endpoint returns { biodatas: [...], pagination: {...} }
+    // We extract only valid public profiles to build profile URLs.
     if (BACKEND_URL) {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/biodata/public`, {
+        const response = await fetch(`${BACKEND_URL}/api/biodata/public?limit=50&page=1`, {
           signal: AbortSignal.timeout(5000), // 5s timeout — don't block sitemap for slow API
         });
 
         if (response.ok) {
-          const biodatas = await response.json();
-          // biodatas is an array of objects with _id field (standard Mongoose output)
-          if (Array.isArray(biodatas)) {
-            profileUrls = biodatas
-              .filter((b) => b._id)
-              .map((b) => `
-    <url>
-      <loc>https://aguaa.in/profile/${b._id}</loc>
-      <changefreq>weekly</changefreq>
-      <priority>0.7</priority>
-    </url>`);
+          const json = await response.json();
+          // Extract biodatas array from either object response { biodatas: [...] } or plain array
+          let list = Array.isArray(json) ? json : (json?.biodatas || []);
+
+          // If there are multiple pages, fetch remaining pages (up to 10 pages / 500 profiles) safely within timeout
+          const totalPages = json?.pagination?.totalPages || 1;
+          if (totalPages > 1) {
+            try {
+              const pagePromises = [];
+              for (let p = 2; p <= Math.min(totalPages, 10); p++) {
+                pagePromises.push(
+                  fetch(`${BACKEND_URL}/api/biodata/public?limit=50&page=${p}`, {
+                    signal: AbortSignal.timeout(4000),
+                  })
+                    .then((r) => (r.ok ? r.json() : null))
+                    .then((d) => (Array.isArray(d) ? d : (d?.biodatas || [])))
+                    .catch(() => [])
+                );
+              }
+              const extraPages = await Promise.all(pagePromises);
+              extraPages.forEach((pageItems) => {
+                if (Array.isArray(pageItems) && pageItems.length > 0) {
+                  list = list.concat(pageItems);
+                }
+              });
+            } catch (pageErr) {
+              console.warn('[Sitemap] Could not fetch additional pages:', pageErr.message);
+            }
           }
+
+          // Build sitemap entries for public biodatas (strictly excluding any private items)
+          profileUrls = list
+            .filter((b) => b && b._id && b.isPublic !== false)
+            .map((b) => {
+              const lastmod = b.updatedAt
+                ? new Date(b.updatedAt).toISOString().split('T')[0]
+                : today;
+              return `
+  <url>
+    <loc>https://myaguaa.in/profile/${b._id}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+            });
         }
       } catch (fetchErr) {
         // Non-fatal — we still return the static pages sitemap even if backend is down
@@ -41,8 +81,6 @@ export default async function handler(req, res) {
       console.warn('[Sitemap] BACKEND_URL is not set — profile URLs will be omitted from sitemap');
     }
 
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml"
@@ -50,62 +88,62 @@ export default async function handler(req, res) {
 
   <!-- Static pages -->
   <url>
-    <loc>https://aguaa.in/</loc>
+    <loc>https://myaguaa.in/</loc>
     <lastmod>${today}</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://aguaa.in/explore</loc>
+    <loc>https://myaguaa.in/explore</loc>
     <lastmod>${today}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.95</priority>
   </url>
   <url>
-    <loc>https://aguaa.in/about</loc>
+    <loc>https://myaguaa.in/about</loc>
     <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://aguaa.in/pricing</loc>
+    <loc>https://myaguaa.in/pricing</loc>
     <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://aguaa.in/gallery</loc>
+    <loc>https://myaguaa.in/gallery</loc>
     <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
-    <loc>https://aguaa.in/contact</loc>
+    <loc>https://myaguaa.in/contact</loc>
     <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://aguaa.in/privacy</loc>
+    <loc>https://myaguaa.in/privacy</loc>
     <lastmod>${today}</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://aguaa.in/terms</loc>
+    <loc>https://myaguaa.in/terms</loc>
     <lastmod>${today}</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://aguaa.in/refund</loc>
+    <loc>https://myaguaa.in/refund</loc>
     <lastmod>${today}</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
 
   <!-- Dynamic public profile pages -->
-  ${profileUrls.join('')}
+${profileUrls.join('')}
 
 </urlset>`;
 

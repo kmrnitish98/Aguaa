@@ -4,16 +4,16 @@
  * All per-page metadata, keywords, and schema definitions.
  * Used by the useSEO hook to dynamically update head tags.
  *
- * Domain: https://aguaa.in
+ * Domain: https://myaguaa.in
  */
 
 export const SITE = {
   name: 'Aguaa',
   tagline: 'Dil Se Rishta, Vishwas Se Shaadi',
   description: "India's Trusted Marriage Biodata Platform",
-  url: 'https://aguaa.in',
-  logo: 'https://aguaa.in/logo.png',
-  ogImage: 'https://aguaa.in/og-banner.jpg',
+  url: 'https://myaguaa.in',
+  logo: 'https://myaguaa.in/logo.png',
+  ogImage: 'https://myaguaa.in/og-banner.jpg',
   twitterHandle: '@aguaa_in',
   email: 'support@aguaa.in',
   phone: '',   // Add real phone when available — do not leave placeholder in structured data
@@ -31,7 +31,7 @@ export const PAGE_SEO = {
       "Aguaa is India's most trusted marriage biodata maker. Create beautiful shaadi biodata in minutes. Free PDF download. Serving Bihar, UP, Jharkhand families. शादी के लिए बायोडाटा — Dil Se Rishta, Vishwas Se Shaadi.",
     keywords:
       'shaadi biodata, marriage biodata, biodata maker, shaadi ke liye biodata, wedding biodata, matrimonial website, rishta website, online biodata maker, Bihar matrimonial, UP matrimonial, Jharkhand matrimonial, विवाह बायोडाटा, शादी के लिए बायोडाटा, dulha dulhan biodata, aguaa',
-    canonical: 'https://aguaa.in/',
+    canonical: 'https://myaguaa.in/',
     ogType: 'website',
     schema: 'home',
     noIndex: false,
@@ -42,13 +42,13 @@ export const PAGE_SEO = {
       "Learn about Aguaa — the word 'Aguaa' means a traditional marriage mediator in Bihar/UP culture. India's trusted digital matrimonial platform for families in Bihar, UP & Jharkhand.",
     keywords:
       'about aguaa, aguaa meaning, aguaa kya hai, what is aguaa, marriage mediator India, Bihar matrimonial platform, rishta karane wala, aguaa shaadi',
-    canonical: 'https://aguaa.in/about',
+    canonical: 'https://myaguaa.in/about',
     ogType: 'website',
     schema: 'about',
     noIndex: false,
     breadcrumb: [
-      { name: 'Home', url: 'https://aguaa.in/' },
-      { name: 'About', url: 'https://aguaa.in/about' },
+      { name: 'Home', url: 'https://myaguaa.in/' },
+      { name: 'About', url: 'https://myaguaa.in/about' },
     ],
   },
   '/explore': {
@@ -57,13 +57,13 @@ export const PAGE_SEO = {
       'Browse thousands of verified marriage biodata profiles on Aguaa. Find the perfect rishta from Bihar, UP, Jharkhand. Search by name, city, religion. Free matchmaking platform.',
     keywords:
       'explore biodata, marriage profiles, rishta profiles, shaadi rishta, Bihar matrimonial profiles, UP rishta, Jharkhand biodata, matrimonial search, free rishta website',
-    canonical: 'https://aguaa.in/explore',
+    canonical: 'https://myaguaa.in/explore',
     ogType: 'website',
     schema: 'explore',
     noIndex: false,
     breadcrumb: [
-      { name: 'Home', url: 'https://aguaa.in/' },
-      { name: 'Explore Profiles', url: 'https://aguaa.in/explore' },
+      { name: 'Home', url: 'https://myaguaa.in/' },
+      { name: 'Explore Profiles', url: 'https://myaguaa.in/explore' },
     ],
   },
   '/gallery': {
@@ -72,13 +72,13 @@ export const PAGE_SEO = {
       'Browse Aguaa\'s gallery of premium marriage biodata templates. Traditional royal designs and modern layouts for Hindu, Muslim, and Sikh families from Bihar, UP & Jharkhand.',
     keywords:
       'biodata template, shaadi biodata design, marriage biodata format, premium biodata template, Hindu biodata, Muslim biodata, Bihar biodata template',
-    canonical: 'https://aguaa.in/gallery',
+    canonical: 'https://myaguaa.in/gallery',
     ogType: 'website',
     schema: 'gallery',
     noIndex: false,
     breadcrumb: [
-      { name: 'Home', url: 'https://aguaa.in/' },
-      { name: 'Biodata Templates', url: 'https://aguaa.in/gallery' },
+      { name: 'Home', url: 'https://myaguaa.in/' },
+      { name: 'Biodata Templates', url: 'https://myaguaa.in/gallery' },
     ],
   },
   '/pricing': {
@@ -87,13 +87,13 @@ export const PAGE_SEO = {
       'Create your marriage biodata for free on Aguaa. Upgrade to premium for exclusive templates, PDF downloads, and advanced privacy controls. Best value matrimonial plans.',
     keywords:
       'biodata pricing, free biodata maker, premium matrimonial plan, shaadi biodata cost, free marriage profile, biodata subscription India',
-    canonical: 'https://aguaa.in/pricing',
+    canonical: 'https://myaguaa.in/pricing',
     ogType: 'website',
     schema: 'pricing',
     noIndex: false,
     breadcrumb: [
-      { name: 'Home', url: 'https://aguaa.in/' },
-      { name: 'Pricing', url: 'https://aguaa.in/pricing' },
+      { name: 'Home', url: 'https://myaguaa.in/' },
+      { name: 'Pricing', url: 'https://myaguaa.in/pricing' },
     ],
   },
   '/contact': {
@@ -102,13 +102,13 @@ export const PAGE_SEO = {
       'Get in touch with Aguaa for matrimonial support. We help families in Bihar, UP, Jharkhand find the perfect rishta. Contact us via WhatsApp, email or our contact form.',
     keywords:
       'contact aguaa, aguaa support, matrimonial help, rishta support, biodata help, Bihar matrimonial contact',
-    canonical: 'https://aguaa.in/contact',
+    canonical: 'https://myaguaa.in/contact',
     ogType: 'website',
     schema: 'contact',
     noIndex: false,
     breadcrumb: [
-      { name: 'Home', url: 'https://aguaa.in/' },
-      { name: 'Contact', url: 'https://aguaa.in/contact' },
+      { name: 'Home', url: 'https://myaguaa.in/' },
+      { name: 'Contact', url: 'https://myaguaa.in/contact' },
     ],
   },
   '/privacy': {
@@ -116,13 +116,13 @@ export const PAGE_SEO = {
     description:
       'Aguaa privacy policy. We protect your personal information with bank-grade encryption. Learn how we handle your matrimonial data and biodata information.',
     keywords: 'aguaa privacy policy, biodata privacy, matrimonial data security',
-    canonical: 'https://aguaa.in/privacy',
+    canonical: 'https://myaguaa.in/privacy',
     ogType: 'website',
     schema: null,
     noIndex: false,
     breadcrumb: [
-      { name: 'Home', url: 'https://aguaa.in/' },
-      { name: 'Privacy Policy', url: 'https://aguaa.in/privacy' },
+      { name: 'Home', url: 'https://myaguaa.in/' },
+      { name: 'Privacy Policy', url: 'https://myaguaa.in/privacy' },
     ],
   },
   '/terms': {
@@ -130,13 +130,13 @@ export const PAGE_SEO = {
     description:
       "Aguaa's terms of service for using India's trusted marriage biodata platform. Read our usage guidelines and policies.",
     keywords: 'aguaa terms of service, matrimonial terms, biodata platform terms',
-    canonical: 'https://aguaa.in/terms',
+    canonical: 'https://myaguaa.in/terms',
     ogType: 'website',
     schema: null,
     noIndex: false,
     breadcrumb: [
-      { name: 'Home', url: 'https://aguaa.in/' },
-      { name: 'Terms of Service', url: 'https://aguaa.in/terms' },
+      { name: 'Home', url: 'https://myaguaa.in/' },
+      { name: 'Terms of Service', url: 'https://myaguaa.in/terms' },
     ],
   },
   '/refund': {
@@ -144,20 +144,20 @@ export const PAGE_SEO = {
     description:
       "Aguaa's refund policy for premium matrimonial services. We offer fair and transparent refunds.",
     keywords: 'aguaa refund policy, biodata refund, matrimonial refund',
-    canonical: 'https://aguaa.in/refund',
+    canonical: 'https://myaguaa.in/refund',
     ogType: 'website',
     schema: null,
     noIndex: false,
     breadcrumb: [
-      { name: 'Home', url: 'https://aguaa.in/' },
-      { name: 'Refund Policy', url: 'https://aguaa.in/refund' },
+      { name: 'Home', url: 'https://myaguaa.in/' },
+      { name: 'Refund Policy', url: 'https://myaguaa.in/refund' },
     ],
   },
   '/login': {
     title: 'Login — Aguaa | Access Your Marriage Biodata',
     description: 'Login to your Aguaa account to manage your marriage biodata and explore profiles.',
     keywords: 'aguaa login, biodata login, matrimonial login',
-    canonical: 'https://aguaa.in/login',
+    canonical: 'https://myaguaa.in/login',
     ogType: 'website',
     schema: null,
     noIndex: true, // Don't index auth pages
@@ -167,7 +167,7 @@ export const PAGE_SEO = {
     description:
       'Create your free Aguaa account and start making your marriage biodata today. Join 10,000+ families on India\'s trusted matrimonial platform.',
     keywords: 'aguaa signup, create biodata account, free matrimonial registration',
-    canonical: 'https://aguaa.in/signup',
+    canonical: 'https://myaguaa.in/signup',
     ogType: 'website',
     schema: null,
     noIndex: true, // Don't index auth pages
@@ -175,28 +175,28 @@ export const PAGE_SEO = {
   '/create': {
     title: 'Create Marriage Biodata — Aguaa',
     description: 'Create your professional marriage biodata on Aguaa.',
-    canonical: 'https://aguaa.in/create',
+    canonical: 'https://myaguaa.in/create',
     schema: null,
     noIndex: true,
   },
   '/dashboard': {
     title: 'My Dashboard — Aguaa',
     description: 'Manage your marriage biodata on Aguaa.',
-    canonical: 'https://aguaa.in/dashboard',
+    canonical: 'https://myaguaa.in/dashboard',
     schema: null,
     noIndex: true,
   },
   '/edit': {
     title: 'Edit Marriage Biodata — Aguaa',
     description: 'Update your marriage biodata on Aguaa.',
-    canonical: 'https://aguaa.in/dashboard',
+    canonical: 'https://myaguaa.in/dashboard',
     schema: null,
     noIndex: true,
   },
   '/404': {
     title: 'Page Not Found | Aguaa',
     description: 'The page you are looking for does not exist on Aguaa.',
-    canonical: 'https://aguaa.in/',
+    canonical: 'https://myaguaa.in/',
     schema: null,
     noIndex: true,
   },

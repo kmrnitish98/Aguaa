@@ -1,9 +1,9 @@
-import { NavLink, Link, useNavigate } from "react-router-dom";
+import { NavLink, Link, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import {
   LogOut, LayoutDashboard, PlusCircle,
-  Home, Menu, X, Compass,
+  Home, Menu, X, Compass, Shield
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import Button from "../ui/Button";
@@ -12,6 +12,8 @@ import logo from "../../assets/aguaa-logo-r.webp";
 const Navbar = () => {
   const { currentUser, loading, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isPreviewPage = location.pathname.startsWith('/preview');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [scrollDepth, setScrollDepth] = useState(0); // 0-100
@@ -62,27 +64,30 @@ const Navbar = () => {
         { to: "/explore",   label: "Explore",     icon: <Compass className="w-4 h-4" />       },
         { to: "/dashboard", label: "My Biodatas", icon: <LayoutDashboard className="w-4 h-4" />},
         { to: "/create",    label: "Create New",  icon: <PlusCircle className="w-4 h-4" />    },
+        ...(currentUser?.role === 'admin' ? [{ to: "/admin", label: "Admin Panel", icon: <Shield className="w-4 h-4 text-red-500" /> }] : []),
       ]
     : [
         { to: "/",        label: "Home",    icon: <Home className="w-4 h-4" />    },
         { to: "/explore", label: "Explore", icon: <Compass className="w-4 h-4" /> },
       ];
 
+  const isSolid = scrolled || isPreviewPage;
+
   return (
     <>
       <nav
         aria-label="Main navigation"
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
+          isSolid
             ? "border-b border-yellow-900/30"
             : "border-b border-transparent"
         }`}
         style={{
-          background: scrolled
-            ? `rgba(10,2,0,${Math.min(0.96, 0.72 + scrollDepth * 0.004)})`
+          background: isSolid
+            ? (isPreviewPage ? 'rgba(25, 6, 4, 0.96)' : `rgba(10,2,0,${Math.min(0.96, 0.72 + scrollDepth * 0.004)})`)
             : 'transparent',
-          backdropFilter: scrolled ? 'blur(20px)' : 'none',
-          WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
+          backdropFilter: isSolid ? 'blur(20px)' : 'none',
+          WebkitBackdropFilter: isSolid ? 'blur(20px)' : 'none',
         }}
       >
         {/* Scroll progress bar — decorative, hidden from screen readers */}
@@ -94,14 +99,14 @@ const Navbar = () => {
         />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-14">
 
             {/* Logo */}
             <Link to="/" className="flex items-center group flex-shrink-0">
               <img
                 src={logo}
                 alt="AGUAA"
-                className="h-14 sm:h-16 w-auto object-contain transition-all duration-300 group-hover:scale-105 group-hover:brightness-110"
+                className="h-10 sm:h-11 w-auto object-contain transition-all duration-300 group-hover:scale-105 group-hover:brightness-110"
               />
             </Link>
 
@@ -190,12 +195,12 @@ const Navbar = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="fixed top-16 left-0 right-0 z-40 md:hidden"
+            className="fixed top-14 left-0 right-0 z-40 md:hidden"
             style={{
-              background: 'rgba(8,1,0,0.97)',
+              background: 'rgba(25, 6, 4, 0.98)',
               backdropFilter: 'blur(24px)',
               WebkitBackdropFilter: 'blur(24px)',
-              borderBottom: '1px solid rgba(184,134,11,0.15)',
+              borderBottom: '1px solid rgba(184,134,11,0.2)',
               boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
             }}
           >

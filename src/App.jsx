@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider } from './context/LanguageContext';
@@ -23,6 +23,7 @@ const VerifyEmailPage     = lazy(() => import('./pages/VerifyEmailPage'));
 const CreateBiodataPage   = lazy(() => import('./pages/CreateBiodataPage'));
 const EditBiodataPage     = lazy(() => import('./pages/EditBiodataPage'));
 const ProfilePage         = lazy(() => import('./pages/ProfilePage'));
+const TemplatePreviewPage = lazy(() => import('./pages/TemplatePreviewPage'));
 const DashboardPage       = lazy(() => import('./pages/DashboardPage'));
 const GalleryPage         = lazy(() => import('./pages/GalleryPage'));
 const AboutPage           = lazy(() => import('./pages/AboutPage'));
@@ -35,6 +36,17 @@ const ExplorePage         = lazy(() => import('./pages/ExplorePage'));
 const NotFoundPage        = lazy(() => import('./pages/NotFoundPage'));
 const ServerErrorPage     = lazy(() => import('./pages/ServerErrorPage'));
 
+// ── Admin pages ────────────────────────────────────────────────────────────────
+const AdminLayout          = lazy(() => import('./pages/admin/AdminLayout'));
+const AdminDashboardPage   = lazy(() => import('./pages/admin/AdminDashboardPage'));
+const AdminUsersPage       = lazy(() => import('./pages/admin/AdminUsersPage'));
+const AdminBiodatasPage    = lazy(() => import('./pages/admin/AdminBiodatasPage'));
+const AdminGalleryPage     = lazy(() => import('./pages/admin/AdminGalleryPage'));
+const AdminMessagesPage    = lazy(() => import('./pages/admin/AdminMessagesPage'));
+const AdminTemplatesPage   = lazy(() => import('./pages/admin/AdminTemplatesPage'));
+const AdminSettingsPage    = lazy(() => import('./pages/admin/AdminSettingsPage'));
+const AdminRoute           = lazy(() => import('./pages/admin/AdminRoute'));
+
 // ── Page transition loader ────────────────────────────────────────────────────
 const PageLoader = () => (
   <div className="min-h-screen flex flex-col items-center justify-center bg-[#0d0000]">
@@ -42,6 +54,15 @@ const PageLoader = () => (
     <p className="mt-4 text-[#d4a017] font-medium tracking-widest text-sm uppercase">Loading…</p>
   </div>
 );
+
+// ── Conditional Navbar ────────────────────────────────────────────────────────
+const NavbarConditional = () => {
+  const location = useLocation();
+  // Hide main navbar on all /admin paths
+  if (location.pathname.startsWith('/admin')) return null;
+  return <Navbar />;
+};
+
 
 // ── QueryClient ───────────────────────────────────────────────────────────────
 const queryClient = new QueryClient({
@@ -66,7 +87,7 @@ function App() {
             <ToastProvider>
               <LanguageProvider>
               <BrowserRouter>
-                <Navbar />
+                <NavbarConditional />
                 {/* Toast container — always visible, portal-like fixed position */}
                 <ToastContainer />
                 {/* Mobile sticky CTA — logged-out users only, md breakpoint hides it */}
@@ -98,9 +119,29 @@ function App() {
                       <Route path="/create"   element={<ProtectedRoute><CreateBiodataPage /></ProtectedRoute>} />
                       <Route path="/edit/:id" element={<ProtectedRoute><EditBiodataPage /></ProtectedRoute>} />
                       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+                      <Route path="/preview/:biodataId/:templateId" element={<ProtectedRoute><TemplatePreviewPage /></ProtectedRoute>} />
+                      <Route path="/preview/:biodataId" element={<ProtectedRoute><TemplatePreviewPage /></ProtectedRoute>} />
 
                       {/* ── Error pages ── */}
                       <Route path="/500" element={<ServerErrorPage />} />
+
+                      {/* ── Admin — own layout, own sidebar, no main Navbar ── */}
+                      <Route
+                        path="/admin"
+                        element={
+                          <AdminRoute>
+                            <AdminLayout />
+                          </AdminRoute>
+                        }
+                      >
+                        <Route index            element={<AdminDashboardPage />} />
+                        <Route path="users"     element={<AdminUsersPage />} />
+                        <Route path="biodatas"  element={<AdminBiodatasPage />} />
+                        <Route path="gallery"   element={<AdminGalleryPage />} />
+                        <Route path="messages"  element={<AdminMessagesPage />} />
+                        <Route path="templates" element={<AdminTemplatesPage />} />
+                        <Route path="settings"  element={<AdminSettingsPage />} />
+                      </Route>
 
                       {/* ── Catch-all 404 ── */}
                       <Route path="*" element={<NotFoundPage />} />

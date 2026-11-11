@@ -1,5 +1,4 @@
-# robots.txt — Aguaa (https://aguaa.in)
-# Updated: May 2026
+# robots.txt — Aguaa (https://myaguaa.in)
 
 # ── All crawlers
 User-agent: *
@@ -14,28 +13,48 @@ Allow: /privacy
 Allow: /terms
 Allow: /refund
 
-# Block private/auth pages — waste crawl budget + expose user data risk
+# Block private, authenticated, admin, and utility routes
 Disallow: /login
 Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
 Disallow: /dashboard
 Disallow: /create
+Disallow: /edit
 Disallow: /edit/
+Disallow: /preview/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /500
 
 # Block API routes — not for crawlers
 Disallow: /api/
 
-# ── GPTBot (ChatGPT) — allow for AI visibility
+# ── GPTBot (ChatGPT) — allow for AI visibility on public pages
 User-agent: GPTBot
 Allow: /
 Allow: /explore
 Allow: /profile/
 Allow: /about
 Allow: /pricing
+Allow: /gallery
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+Allow: /refund
 Disallow: /login
 Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
 Disallow: /dashboard
 Disallow: /create
+Disallow: /edit
 Disallow: /edit/
+Disallow: /preview/
+Disallow: /admin
+Disallow: /admin/
 Disallow: /api/
 
 # ── Google's AI / Bard training bot
@@ -60,4 +79,4 @@ User-agent: DotBot
 Disallow: /
 
 # ── Sitemap location (dynamic — includes all public profile URLs)
-Sitemap: https://aguaa.in/sitemap.xml
+Sitemap: https://myaguaa.in/sitemap.xml
