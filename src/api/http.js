@@ -103,22 +103,38 @@ export const http = async (endpoint, options = {}) => {
     });
   } catch (err) {
     timeoutCtrl.clear();
-    if (err.name === 'AbortError') {
-      // Use the tracked flag — err.message does NOT contain the abort reason
-      const isTimeout = timeoutCtrl.timedOut;
-      const abortErr = new Error(
-        isTimeout
-          ? 'Request timed out. Please try again.'
-          : 'Request was cancelled.'
-      );
+
+    // Check if error was caused by a timeout
+    const isTimeout =
+      timeoutCtrl.timedOut ||
+      err === 'timeout' ||
+      err?.name === 'TimeoutError' ||
+      err?.code === 'TIMEOUT' ||
+      (err?.name === 'AbortError' && timeoutCtrl.timedOut);
+
+    if (isTimeout) {
+      const abortErr = new Error('Request timed out. Please try again.');
       abortErr.status = 0;
-      abortErr.code   = isTimeout ? 'TIMEOUT' : 'ABORTED';
+      abortErr.code   = 'TIMEOUT';
+      logger.apiError(endpoint, abortErr);
       throw abortErr;
     }
-    // Network / CORS / DNS failure
-    const netErr = new Error('No internet connection. Please check your network.');
+
+    if (err?.name === 'AbortError' || err === 'cancelled') {
+      const abortErr = new Error('Request was cancelled.');
+      abortErr.status = 0;
+      abortErr.code   = 'ABORTED';
+      throw abortErr;
+    }
+
+    // Network / CORS / offline failure
+    const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+    const netMessage = isOffline
+      ? 'No internet connection. Please check your network.'
+      : 'Unable to connect to the server. Please check your network or try again later.';
+    const netErr = new Error(netMessage);
     netErr.status = 0;
-    netErr.code   = 'NETWORK_ERROR';
+    netErr.code   = isOffline ? 'OFFLINE' : 'NETWORK_ERROR';
     logger.apiError(endpoint, err);
     throw netErr;
   } finally {
@@ -151,7 +167,9 @@ export const http = async (endpoint, options = {}) => {
   }
 
   // ── 5xx — retry with backoff ─────────────────────────────────
-  if (RETRY.RETRYABLE_STATUSES.has(res.status) && _attempt < RETRY.MAX_ATTEMPTS) {
+  // Non-idempotent auth mutations (forgot-password, login, signup) should NOT auto-retry on 5xx errors
+  const isAuthMutation = endpoint.startsWith('/auth/') && fetchOptions.method && fetchOptions.method !== 'GET';
+  if (!isAuthMutation && RETRY.RETRYABLE_STATUSES.has(res.status) && _attempt < RETRY.MAX_ATTEMPTS) {
     const delay = retryDelay(_attempt);
     logger.warn(
       `${res.status} from ${endpoint} — retrying in ${delay}ms (attempt ${_attempt + 1}/${RETRY.MAX_ATTEMPTS})`,

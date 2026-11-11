@@ -3,6 +3,22 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm install",
+  "cleanUrls": true,
+  "trailingSlash": false,
+
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "myaguaa.in"
+        }
+      ],
+      "destination": "https://www.myaguaa.in/$1",
+      "permanent": true
+    }
+  ],
 
   "functions": {
     "api/og.js": {

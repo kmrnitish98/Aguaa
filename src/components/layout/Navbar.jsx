@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import {
   LogOut, LayoutDashboard, PlusCircle,
-  Home, Menu, X, Compass, Shield
+  Home, Menu, X, Compass, Shield, FileText, CreditCard
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import Button from "../ui/Button";
@@ -48,7 +48,7 @@ const Navbar = () => {
     `flex items-center gap-1.5 text-sm font-medium transition-all duration-200 relative group
      ${isActive
        ? "text-yellow-400"
-       : "text-gray-400 hover:text-yellow-300"
+       : "text-gray-300 hover:text-yellow-300"
      }`;
 
   /* ── Active indicator dot ─────────────────────────────────── */
@@ -67,8 +67,10 @@ const Navbar = () => {
         ...(currentUser?.role === 'admin' ? [{ to: "/admin", label: "Admin Panel", icon: <Shield className="w-4 h-4 text-red-500" /> }] : []),
       ]
     : [
-        { to: "/",        label: "Home",    icon: <Home className="w-4 h-4" />    },
-        { to: "/explore", label: "Explore", icon: <Compass className="w-4 h-4" /> },
+        { to: "/",        label: "Home",      icon: <Home className="w-4 h-4" />     },
+        { to: "/explore", label: "Explore",   icon: <Compass className="w-4 h-4" />  },
+        { to: "/gallery", label: "Templates", icon: <FileText className="w-4 h-4" /> },
+        { to: "/pricing", label: "Pricing",   icon: <CreditCard className="w-4 h-4" />},
       ];
 
   const isSolid = scrolled || isPreviewPage;
@@ -102,10 +104,12 @@ const Navbar = () => {
           <div className="flex items-center justify-between h-14">
 
             {/* Logo */}
-            <Link to="/" className="flex items-center group flex-shrink-0">
+            <Link to="/" className="flex items-center group flex-shrink-0" aria-label="Aguaa Home">
               <img
                 src={logo}
-                alt="AGUAA"
+                alt="Aguaa — Free Marriage Biodata Maker"
+                width="135"
+                height="40"
                 className="h-10 sm:h-11 w-auto object-contain transition-all duration-300 group-hover:scale-105 group-hover:brightness-110"
               />
             </Link>
@@ -168,7 +172,7 @@ const Navbar = () => {
               aria-expanded={mobileOpen}
               aria-controls="mobile-menu"
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+              className="md:hidden p-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500"
             >
               <AnimatePresence mode="wait" initial={false}>
                 {mobileOpen ? (
@@ -240,7 +244,7 @@ const Navbar = () => {
                       </div>
                       <div className="min-w-0">
                         <p className="text-white text-sm font-medium truncate">{currentUser.name || 'User'}</p>
-                        <p className="text-gray-500 text-xs truncate">{currentUser.email}</p>
+                        <p className="text-gray-300 text-xs truncate">{currentUser.email}</p>
                       </div>
                     </div>
                     <Button variant="ghost" size="sm" onClick={handleLogout} className="w-full justify-center">

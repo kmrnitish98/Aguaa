@@ -1,6 +1,6 @@
-# robots.txt — Aguaa (https://myaguaa.in)
+# robots.txt — Aguaa (https://www.myaguaa.in)
 
-# ── All crawlers
+# ── All Crawlers (Googlebot, Bingbot, etc.)
 User-agent: *
 Allow: /
 Allow: /explore
@@ -12,6 +12,11 @@ Allow: /contact
 Allow: /privacy
 Allow: /terms
 Allow: /refund
+Allow: /hindi-biodata-maker
+Allow: /muslim-marriage-biodata
+Allow: /biodata-format-for-marriage
+Allow: /biodata-pdf-download
+Allow: /bihar-up-shaadi-biodata
 
 # Block private, authenticated, admin, and utility routes
 Disallow: /login
@@ -27,11 +32,9 @@ Disallow: /preview/
 Disallow: /admin
 Disallow: /admin/
 Disallow: /500
-
-# Block API routes — not for crawlers
 Disallow: /api/
 
-# ── GPTBot (ChatGPT) — allow for AI visibility on public pages
+# ── GPTBot (ChatGPT) & AI search bots
 User-agent: GPTBot
 Allow: /
 Allow: /explore
@@ -43,6 +46,11 @@ Allow: /contact
 Allow: /privacy
 Allow: /terms
 Allow: /refund
+Allow: /hindi-biodata-maker
+Allow: /muslim-marriage-biodata
+Allow: /biodata-format-for-marriage
+Allow: /biodata-pdf-download
+Allow: /bihar-up-shaadi-biodata
 Disallow: /login
 Disallow: /signup
 Disallow: /forgot-password
@@ -57,15 +65,15 @@ Disallow: /admin
 Disallow: /admin/
 Disallow: /api/
 
-# ── Google's AI / Bard training bot
+# ── Google's AI / Search Generative Experience
 User-agent: Google-Extended
 Allow: /
 
-# ── Anthropic's Claude training bot
+# ── Anthropic Claude
 User-agent: anthropic-ai
 Allow: /
 
-# ── Common Bad Bots — block to save bandwidth
+# ── Aggressive / Scraper bots
 User-agent: AhrefsBot
 Disallow: /
 
@@ -78,5 +86,5 @@ Disallow: /
 User-agent: DotBot
 Disallow: /
 
-# ── Sitemap location (dynamic — includes all public profile URLs)
-Sitemap: https://myaguaa.in/sitemap.xml
+# ── Sitemap location
+Sitemap: https://www.myaguaa.in/sitemap.xml

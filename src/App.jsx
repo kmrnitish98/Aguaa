@@ -9,6 +9,7 @@ import { ToastContainer } from './components/ui/Toast';
 import MobileCTA from './components/ui/MobileCTA';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import Navbar from './components/layout/Navbar';
+import Footer from './components/layout/Footer';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import { GOOGLE_CLIENT_ID } from './config/env';
 import { CACHE } from './constants/limits';
@@ -36,6 +37,13 @@ const ExplorePage         = lazy(() => import('./pages/ExplorePage'));
 const NotFoundPage        = lazy(() => import('./pages/NotFoundPage'));
 const ServerErrorPage     = lazy(() => import('./pages/ServerErrorPage'));
 
+// ── Landing pages (SEO Target Keywords) ─────────────────────────────────────────
+const HindiBiodataPage       = lazy(() => import('./pages/landing/HindiBiodataPage'));
+const MuslimBiodataPage      = lazy(() => import('./pages/landing/MuslimBiodataPage'));
+const BiodataFormatPage      = lazy(() => import('./pages/landing/BiodataFormatPage'));
+const BiodataPdfDownloadPage = lazy(() => import('./pages/landing/BiodataPdfDownloadPage'));
+const RegionalBiodataPage    = lazy(() => import('./pages/landing/RegionalBiodataPage'));
+
 // ── Admin pages ────────────────────────────────────────────────────────────────
 const AdminLayout          = lazy(() => import('./pages/admin/AdminLayout'));
 const AdminDashboardPage   = lazy(() => import('./pages/admin/AdminDashboardPage'));
@@ -55,12 +63,26 @@ const PageLoader = () => (
   </div>
 );
 
-// ── Conditional Navbar ────────────────────────────────────────────────────────
+// ── Conditional Navbar & Footer ───────────────────────────────────────────────
 const NavbarConditional = () => {
   const location = useLocation();
   // Hide main navbar on all /admin paths
   if (location.pathname.startsWith('/admin')) return null;
   return <Navbar />;
+};
+
+const FooterConditional = () => {
+  const location = useLocation();
+  // Hide footer on admin, creation/edit flows, and print preview
+  if (
+    location.pathname.startsWith('/admin') ||
+    location.pathname.startsWith('/preview') ||
+    location.pathname.startsWith('/edit') ||
+    location.pathname === '/create'
+  ) {
+    return null;
+  }
+  return <Footer />;
 };
 
 
@@ -97,8 +119,13 @@ function App() {
                   <ErrorBoundary level="route">
                     <Routes>
                       {/* ── Public ── */}
-                      <Route path="/"                  element={<HomePage />} />
-                      <Route path="/gallery"           element={<GalleryPage />} />
+                      <Route path="/"                            element={<HomePage />} />
+                      <Route path="/hindi-biodata-maker"         element={<HindiBiodataPage />} />
+                      <Route path="/muslim-marriage-biodata"     element={<MuslimBiodataPage />} />
+                      <Route path="/biodata-format-for-marriage" element={<BiodataFormatPage />} />
+                      <Route path="/biodata-pdf-download"        element={<BiodataPdfDownloadPage />} />
+                      <Route path="/bihar-up-shaadi-biodata"     element={<RegionalBiodataPage />} />
+                      <Route path="/gallery"                     element={<GalleryPage />} />
                       <Route path="/about"             element={<AboutPage />} />
                       <Route path="/pricing"           element={<PricingPage />} />
                       <Route path="/privacy"           element={<PrivacyPage />} />
@@ -148,6 +175,8 @@ function App() {
                     </Routes>
                   </ErrorBoundary>
                 </Suspense>
+                {/* Global SEO-rich Footer across all public pages */}
+                <FooterConditional />
               </BrowserRouter>
               </LanguageProvider>
             </ToastProvider>

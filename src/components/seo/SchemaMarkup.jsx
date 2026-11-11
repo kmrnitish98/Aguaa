@@ -11,6 +11,7 @@
  */
 
 import { useEffect } from 'react';
+import { generateProfileSlug } from '../../utils/slug';
 
 /**
  * Injects a JSON-LD script into <head>
@@ -94,12 +95,13 @@ export function PersonProfileSchema({ biodata }) {
   const age  = personalInfo.age || '';
   const city = personalInfo.city || personalInfo.presentAddress || '';
 
-  const schema = {
+    const slug = generateProfileSlug(biodata) || biodata._id;
+    const schema = {
     '@context': 'https://schema.org',
     '@type': 'ProfilePage',
     name: `${name}'s Marriage Biodata`,
     description: `View ${name}'s verified marriage biodata on Aguaa${age ? ` (${age} years)` : ''}${city ? ` from ${city}` : ''}. Looking for a loving life partner.`,
-    url: `https://myaguaa.in/profile/${biodata._id}`,
+    url: `https://myaguaa.in/profile/${slug}`,
     mainEntity: {
       '@type': 'Person',
       name,

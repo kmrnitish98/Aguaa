@@ -62,7 +62,7 @@ const MobileCTA = () => {
               <p className="text-white text-sm font-medium leading-tight">
                 Create your free biodata
               </p>
-              <p className="text-yellow-700/70 text-xs truncate">
+              <p className="text-amber-200/90 text-xs truncate">
                 100% free · Print-ready · Private by default
               </p>
             </div>
@@ -74,18 +74,22 @@ const MobileCTA = () => {
               className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold ripple-container
                          bg-gradient-to-r from-yellow-700 to-yellow-500 text-black
                          hover:from-yellow-600 hover:to-yellow-400 transition-all
-                         shadow-[0_0_16px_rgba(212,160,23,0.35)]"
+                         shadow-[0_0_16px_rgba(212,160,23,0.35)]
+                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400"
             >
               Get Started
             </Link>
 
-            {/* Dismiss */}
+            {/* Dismiss — 44x44px touch target with 28px visual indicator */}
             <button
+              type="button"
               onClick={dismiss}
-              aria-label="Dismiss"
-              className="flex-shrink-0 w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-gray-500 hover:text-white transition-colors"
+              aria-label="Dismiss notification"
+              className="flex-shrink-0 w-11 h-11 -mr-2 rounded-full flex items-center justify-center text-gray-300 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500"
             >
-              <X className="w-3.5 h-3.5" />
+              <span className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center">
+                <X className="w-3.5 h-3.5" aria-hidden="true" />
+              </span>
             </button>
           </div>
         </motion.div>

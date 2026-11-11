@@ -90,6 +90,13 @@ const BACKGROUND_VIDEOS = [
   "https://videos.pexels.com/video-files/29766220/12791760_3840_2160_25fps.mp4",
 ];
 
+const BACKGROUND_POSTERS = [
+  "/hero-poster.webp",
+  "/hero-poster-2.webp",
+  "/hero-poster-3.webp",
+  "/hero-poster-4.webp",
+];
+
 const HERO_MEDIA = [
   {
     type: "image",
@@ -141,7 +148,6 @@ const HomePage = () => {
   const [activeFaq, setActiveFaq] = useState(null);
   const galleryLimit = 8;
 
-
   // ── Public biodatas — React Query (homepage limits to 8 latest profiles) ──
   const {
     data: biodataResult,
@@ -150,13 +156,20 @@ const HomePage = () => {
     error: queryError,
     refetch: refetchBiodatas,
   } = useQuery({
-    queryKey: QUERY_KEYS.biodata.public({ page: 1, limit: 8, search: "", filter: "All" }),
+    queryKey: QUERY_KEYS.biodata.public({
+      page: 1,
+      limit: 8,
+      search: "",
+      filter: "All",
+    }),
     queryFn: ({ signal }) => getPublicBiodatas({ page: 1, limit: 8, signal }),
     staleTime: CACHE.PUBLIC_BIODATAS_STALE_MS,
     gcTime: CACHE.GC_TIME_MS,
   });
 
-  const error = isError ? (queryError?.message || "Failed to load biodata profiles.") : null;
+  const error = isError
+    ? queryError?.message || "Failed to load biodata profiles."
+    : null;
 
   // Normalise: getPublicBiodatas returns { biodatas, data, ... } or plain array
   const biodatas = Array.isArray(biodataResult)
@@ -224,38 +237,16 @@ const HomePage = () => {
     return () => clearInterval(interval);
   }, [isDesktop]);
 
-  // Synchronize video playback based on screen size (isDesktop) and activeBg
+  // Synchronize video playback on desktop
   useEffect(() => {
-    videoRefs.current.forEach((video, i) => {
+    if (!isDesktop) return;
+    videoRefs.current.forEach((video) => {
       if (!video) return;
       video.muted = true;
-
-      if (isDesktop) {
-        // Desktop: all videos play simultaneously in a loop
-        video.loop = true;
-        const playPromise = video.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(() => {});
-        }
-      } else {
-        // Mobile & Tablet: sequential playback (only 1 video plays at a time)
-        video.loop = false;
-        if (i === activeBg) {
-          if (video.ended) {
-            try {
-              video.currentTime = 0;
-            } catch { /* ignore playback reset error */ }
-          }
-          const playPromise = video.play();
-          if (playPromise !== undefined) {
-            playPromise.catch(() => {});
-          }
-        } else {
-          video.pause();
-          try {
-            video.currentTime = 0;
-          } catch { /* ignore playback reset error */ }
-        }
+      video.loop = true;
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {});
       }
     });
   }, [isDesktop, activeBg]);
@@ -278,26 +269,17 @@ const HomePage = () => {
   }, []);
 
   const goToPrevSlide = useCallback(() => {
-    setActiveBg((prev) => (prev - 1 + BACKGROUND_VIDEOS.length) % BACKGROUND_VIDEOS.length);
+    setActiveBg(
+      (prev) =>
+        (prev - 1 + BACKGROUND_VIDEOS.length) % BACKGROUND_VIDEOS.length,
+    );
   }, []);
 
   const goToSlide = useCallback((index) => {
     setActiveBg(index);
   }, []);
 
-  // Sequential advance when current video finishes on mobile/tablet
-  const handleVideoEnded = (index) => {
-    if (!isDesktop && activeBg === index) {
-      goToNextSlide();
-    }
-  };
 
-  // Gracefully handle video playback or loading error on mobile/tablet
-  const handleVideoError = (index) => {
-    if (!isDesktop && activeBg === index) {
-      goToNextSlide();
-    }
-  };
 
   // Touch swipe support for mobile/tablet carousel
   const touchStartX = useRef(null);
@@ -339,7 +321,7 @@ const HomePage = () => {
   });
 
   return (
-    <div className="min-h-screen bg-[#0f0a00] text-[#f5ead0] overflow-hidden font-['DM_Sans',sans-serif] selection:bg-[#d4a017]/30 selection:text-[#f0c040]">
+    <div className="min-h-screen bg-[#0f0a00] text-[#f5ead0] overflow-hidden font-['Inter',sans-serif] selection:bg-[#d4a017]/30 selection:text-[#f0c040]">
       {/* Schema Markup for Rich Results */}
 
       {/* WhatsApp Floating Button — disabled until a real support number is configured */}
@@ -361,6 +343,7 @@ const HomePage = () => {
                 <video
                   ref={(el) => (videoRefs.current[i] = el)}
                   src={src}
+                  poster={BACKGROUND_POSTERS[i]}
                   autoPlay
                   loop
                   muted
@@ -373,7 +356,7 @@ const HomePage = () => {
             ))}
           </div>
         ) : (
-          /* Mobile & Tablet (< 1024px): Single-Slide Full-Width Carousel */
+          /* Mobile & Tablet (< 1024px): Single-Slide Full-Width Responsive Poster Carousel (No heavy video downloads) */
           <div
             className="absolute inset-0 z-0 w-full h-full overflow-hidden"
             onTouchStart={handleTouchStart}
@@ -384,21 +367,20 @@ const HomePage = () => {
               className="flex h-full w-full transition-transform duration-500 ease-out"
               style={{ transform: `translateX(-${activeBg * 100}%)` }}
             >
-              {BACKGROUND_VIDEOS.map((src, i) => (
+              {BACKGROUND_POSTERS.map((posterSrc, i) => (
                 <div
                   key={i}
                   className="w-full h-full flex-shrink-0 relative overflow-hidden"
                 >
-                  <video
-                    ref={(el) => (videoRefs.current[i] = el)}
-                    src={src}
-                    autoPlay={activeBg === i}
-                    loop={false}
-                    muted
-                    playsInline
-                    preload={activeBg === i ? "auto" : "none"}
-                    onEnded={() => handleVideoEnded(i)}
-                    onError={() => handleVideoError(i)}
+                  <img
+                    src={posterSrc}
+                    alt=""
+                    aria-hidden="true"
+                    loading={i === 0 ? "eager" : "lazy"}
+                    fetchPriority={i === 0 ? "high" : "low"}
+                    decoding={i === 0 ? "sync" : "async"}
+                    width="960"
+                    height="540"
                     className="absolute inset-0 w-full h-full object-cover scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0f0a00]/90 via-[#0f0a00]/40 to-[#0f0a00]/80 pointer-events-none" />
@@ -410,18 +392,18 @@ const HomePage = () => {
             <button
               type="button"
               onClick={goToPrevSlide}
-              aria-label="Previous video slide"
-              className="hidden md:flex lg:hidden absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[#0f0a00]/70 backdrop-blur-md border border-[#d4a017]/30 text-[#d4a017] items-center justify-center opacity-80 hover:opacity-100 transition-all active:scale-95 pointer-events-auto"
+              aria-label="Previous slide"
+              className="hidden md:flex lg:hidden absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[#0f0a00]/70 backdrop-blur-md border border-[#d4a017]/30 text-[#d4a017] items-center justify-center opacity-80 hover:opacity-100 transition-all active:scale-95 pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d4a017]"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft className="w-6 h-6" aria-hidden="true" />
             </button>
             <button
               type="button"
               onClick={goToNextSlide}
-              aria-label="Next video slide"
-              className="hidden md:flex lg:hidden absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[#0f0a00]/70 backdrop-blur-md border border-[#d4a017]/30 text-[#d4a017] items-center justify-center opacity-80 hover:opacity-100 transition-all active:scale-95 pointer-events-auto"
+              aria-label="Next slide"
+              className="hidden md:flex lg:hidden absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[#0f0a00]/70 backdrop-blur-md border border-[#d4a017]/30 text-[#d4a017] items-center justify-center opacity-80 hover:opacity-100 transition-all active:scale-95 pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d4a017]"
             >
-              <ChevronRight className="w-6 h-6" />
+              <ChevronRight className="w-6 h-6" aria-hidden="true" />
             </button>
 
             {/* Bottom Control Bar: Prev/Next + Pagination Dots */}
@@ -430,19 +412,19 @@ const HomePage = () => {
                 type="button"
                 onClick={goToPrevSlide}
                 aria-label="Previous slide"
-                className="p-1 rounded-full text-[#d4a017]/80 hover:text-[#d4a017] hover:bg-[#d4a017]/10 transition-colors active:scale-90"
+                className="p-1 rounded-full text-[#d4a017]/80 hover:text-[#d4a017] hover:bg-[#d4a017]/10 transition-colors active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d4a017]"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-4 h-4" aria-hidden="true" />
               </button>
 
               <div className="flex items-center gap-1.5 px-1">
-                {BACKGROUND_VIDEOS.map((_, i) => (
+                {BACKGROUND_POSTERS.map((_, i) => (
                   <button
                     key={i}
                     type="button"
                     onClick={() => goToSlide(i)}
                     aria-label={`Go to slide ${i + 1}`}
-                    className={`h-2 rounded-full transition-all duration-300 ${
+                    className={`h-2 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d4a017] ${
                       activeBg === i
                         ? "w-6 bg-[#d4a017] shadow-[0_0_8px_rgba(212,160,23,0.6)]"
                         : "w-2 bg-[#d4a017]/30 hover:bg-[#d4a017]/60"
@@ -455,33 +437,28 @@ const HomePage = () => {
                 type="button"
                 onClick={goToNextSlide}
                 aria-label="Next slide"
-                className="p-1 rounded-full text-[#d4a017]/80 hover:text-[#d4a017] hover:bg-[#d4a017]/10 transition-colors active:scale-90"
+                className="p-1 rounded-full text-[#d4a017]/80 hover:text-[#d4a017] hover:bg-[#d4a017]/10 transition-colors active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d4a017]"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           </div>
         )}
 
+        {/* Hardware-accelerated background particles on GPU compositor */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           {particles.map((p) => (
-            <motion.div
+            <div
               key={p.id}
-              className="absolute w-1 h-1 bg-[#d4a017] rounded-full"
+              className="absolute w-1 h-1 bg-[#d4a017] rounded-full hero-particle"
               style={{
                 left: `${p.x}%`,
                 top: `${p.y}%`,
                 opacity: p.opacity,
-                willChange: "transform, opacity",
-              }}
-              animate={{
-                y: [0, p.yMove],
-                opacity: [p.opacity, 0],
-              }}
-              transition={{
-                duration: p.duration,
-                repeat: Infinity,
-                ease: "linear",
+                "--particle-opacity": p.opacity,
+                "--y-move": `${p.yMove}px`,
+                "--particle-duration": `${p.duration}s`,
+                animationDelay: `${(p.id % 5) * 0.3}s`,
               }}
             />
           ))}
@@ -491,51 +468,37 @@ const HomePage = () => {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div className="text-center lg:text-left">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1f1500]/80 border border-[#d4a017]/40 text-[#f0c040] text-sm mb-6 backdrop-blur-md shadow-[0_0_20px_rgba(212,160,23,0.2)]"
-              >
-                <Sparkles className="w-4 h-4" />
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1f1500]/80 border border-[#d4a017]/40 text-[#f0c040] text-sm mb-6 backdrop-blur-md shadow-[0_0_20px_rgba(212,160,23,0.2)]">
+                <Sparkles className="w-4 h-4" aria-hidden="true" />
                 <span className="tracking-wide uppercase font-medium text-xs">
                   Premium Wedding Biodata
                 </span>
-              </motion.div>
+              </div>
 
-              <motion.h1
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                className="text-5xl md:text-6xl lg:text-7xl font-light text-white mb-3 leading-[1.1]"
+              {/* Primary H1: Instant paint without delayed opacity for optimal LCP */}
+              <h1
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light text-white mb-3 leading-[1.1]"
                 style={{ fontFamily: "Cormorant Garamond, serif" }}
               >
                 Create Your{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d4a017] via-[#f0c040] to-[#b8860b] font-medium drop-shadow-sm">
                   Shaadi Biodata
-                </span>
-              </motion.h1>
+                </span>{" "}
+              </h1>
 
-              {/* SEO-rich H2 subtitle */}
-              <motion.h2
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.3 }}
-                className="text-lg font-light text-[#d4a017] mb-4 tracking-wide"
+              {/* Subtitle */}
+              <p
+                className="text-base sm:text-lg font-light text-[#f0c040] mb-4 tracking-wide"
                 style={{ fontFamily: "Cormorant Garamond, serif" }}
               >
-                India's Trusted Marriage Biodata &amp; Matrimonial Platform
-              </motion.h2>
+                India's Trusted Marriage Biodata Platform for Bihar, UP &amp;
+                Jharkhand Families
+              </p>
 
-              <motion.p
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
-                className="text-lg text-[#f0f0f0] mb-4 max-w-xl mx-auto font-bold lg:mx-0 leading-relaxed "
-              >
-                “Shaadi ke liye professional biodata banaye — fast, secure &
+              <p className="text-lg text-[#f0f0f0] mb-4 max-w-xl mx-auto font-bold lg:mx-0 leading-relaxed">
+                “Shaadi ke liye professional biodata banaye — fast, secure &amp;
                 beautiful. Har parivaar ka bharosemand digital Aguaa.”
-              </motion.p>
+              </p>
 
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
@@ -602,110 +565,112 @@ const HomePage = () => {
               </motion.div>
             </div>
 
-            {/* Right Content - Cinematic Cards */}
-            <motion.div
-              className="relative hidden lg:block h-[550px] w-full"
-              variants={fadeUpVariant}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.2 }}
-              custom={0.4}
-            >
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Swiper
-                  effect={"cards"}
-                  grabCursor={true}
-                  modules={[EffectCards, Autoplay]}
-                  autoplay={{
-                    delay: 4000,
-                    disableOnInteraction: false,
-                  }}
-                  className="w-[320px] h-[480px]"
-                >
-                  {HERO_MEDIA.map((media, idx) => (
-                    <SwiperSlide
-                      key={idx}
-                      className="rounded-2xl overflow-hidden border border-[#d4a017]/30 shadow-[0_0_50px_rgba(0,0,0,0.5)]"
-                    >
-                      <div className="relative w-full h-full group">
-                        <img
-                          src={media.src}
-                          alt={`Indian wedding marriage biodata couple - beautiful matrimonial profile ${idx + 1}`}
-                          loading={idx === 0 ? "eager" : "lazy"}
-                          fetchPriority={idx === 0 ? "high" : "auto"}
-                          width="320"
-                          height="480"
-                          decoding="async"
-                          className="w-full h-full object-cover transition-transform duration-[10000ms] group-hover:scale-110"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0f0a00]/90 via-[#0f0a00]/20 to-transparent" />
-                        <div className="absolute bottom-6 left-6 right-6">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                            <span className="text-xs text-white/80 uppercase tracking-wider">
-                              Premium Match
-                            </span>
-                          </div>
-                          <div className="h-1 w-full bg-white/20 rounded-full overflow-hidden">
-                            <motion.div
-                              className="h-full bg-[#d4a017]"
-                              initial={{ width: 0 }}
-                              animate={{ width: "100%" }}
-                              transition={{
-                                duration: 4,
-                                repeat: Infinity,
-                                ease: "linear",
-                              }}
-                            />
+            {/* Right Content - Cinematic Cards (Desktop Only — Avoids heavy Swiper initialization & image downloads on mobile) */}
+            {isDesktop && (
+              <motion.div
+                className="relative hidden lg:block h-[550px] w-full"
+                variants={fadeUpVariant}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.2 }}
+                custom={0.4}
+              >
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Swiper
+                    effect={"cards"}
+                    grabCursor={true}
+                    modules={[EffectCards, Autoplay]}
+                    autoplay={{
+                      delay: 4000,
+                      disableOnInteraction: false,
+                    }}
+                    className="w-[320px] h-[480px]"
+                  >
+                    {HERO_MEDIA.map((media, idx) => (
+                      <SwiperSlide
+                        key={idx}
+                        className="rounded-2xl overflow-hidden border border-[#d4a017]/30 shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+                      >
+                        <div className="relative w-full h-full group">
+                          <img
+                            src={media.src}
+                            alt={`Indian wedding marriage biodata couple - beautiful matrimonial profile ${idx + 1}`}
+                            loading={idx === 0 ? "eager" : "lazy"}
+                            fetchPriority={idx === 0 ? "high" : "auto"}
+                            width="320"
+                            height="480"
+                            decoding="async"
+                            className="w-full h-full object-cover transition-transform duration-[10000ms] group-hover:scale-110"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#0f0a00]/90 via-[#0f0a00]/20 to-transparent" />
+                          <div className="absolute bottom-6 left-6 right-6">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                              <span className="text-xs text-white/80 uppercase tracking-wider">
+                                Premium Match
+                              </span>
+                            </div>
+                            <div className="h-1 w-full bg-white/20 rounded-full overflow-hidden">
+                              <motion.div
+                                className="h-full bg-[#d4a017]"
+                                initial={{ width: 0 }}
+                                animate={{ width: "100%" }}
+                                transition={{
+                                  duration: 4,
+                                  repeat: Infinity,
+                                  ease: "linear",
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </SwiperSlide>
-                  ))}
-                </Swiper>
-              </div>
+                      </SwiperSlide>
+                    ))}
+                  </Swiper>
+                </div>
 
-              {/* Floating Elements */}
-              <motion.div
-                animate={{ y: [-10, 10, -10] }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="absolute top-10 -left-10 bg-[#1a1000]/80 backdrop-blur-xl border border-[#d4a017]/30 p-4 rounded-2xl flex items-center gap-4 shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
-              >
-                <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-amber-500" />
-                </div>
-                <div>
-                  <p className="text-[#f5ead0] font-medium text-sm">
-                    Verified Profile
-                  </p>
-                  <p className="text-xs text-[#a89060]">Just matched!</p>
-                </div>
-              </motion.div>
+                {/* Floating Elements */}
+                <motion.div
+                  animate={{ y: [-10, 10, -10] }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="absolute top-10 -left-10 bg-[#1a1000]/80 backdrop-blur-xl border border-[#d4a017]/30 p-4 rounded-2xl flex items-center gap-4 shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+                >
+                  <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
+                    <CheckCircle className="w-6 h-6 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-[#f5ead0] font-medium text-sm">
+                      Verified Profile
+                    </p>
+                    <p className="text-xs text-[#a89060]">Just matched!</p>
+                  </div>
+                </motion.div>
 
-              <motion.div
-                animate={{ y: [10, -10, 10] }}
-                transition={{
-                  duration: 5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="absolute bottom-20 -right-10 bg-[#1a1000]/80 backdrop-blur-xl border border-[#d4a017]/30 p-4 rounded-2xl flex items-center gap-4 shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
-              >
-                <div className="w-12 h-12 rounded-full bg-[#d4a017]/20 flex items-center justify-center">
-                  <Heart className="w-6 h-6 text-[#d4a017] fill-current" />
-                </div>
-                <div>
-                  <p className="text-[#f5ead0] font-medium text-sm">
-                    Perfect Match
-                  </p>
-                  <p className="text-xs text-[#a89060]">99% Compatibility</p>
-                </div>
+                <motion.div
+                  animate={{ y: [10, -10, 10] }}
+                  transition={{
+                    duration: 5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="absolute bottom-20 -right-10 bg-[#1a1000]/80 backdrop-blur-xl border border-[#d4a017]/30 p-4 rounded-2xl flex items-center gap-4 shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+                >
+                  <div className="w-12 h-12 rounded-full bg-[#d4a017]/20 flex items-center justify-center">
+                    <Heart className="w-6 h-6 text-[#d4a017] fill-current" />
+                  </div>
+                  <div>
+                    <p className="text-[#f5ead0] font-medium text-sm">
+                      Perfect Match
+                    </p>
+                    <p className="text-xs text-[#a89060]">99% Compatibility</p>
+                  </div>
+                </motion.div>
               </motion.div>
-            </motion.div>
+            )}
           </div>
         </div>
 
@@ -788,17 +753,17 @@ const HomePage = () => {
             whileInView="visible"
             viewport={{ once: true, amount: 0.2 }}
           >
-            <h2 className="text-sm font-medium text-[#d4a017] tracking-widest uppercase mb-3">
+            <p className="text-sm font-medium text-[#d4a017] tracking-widest uppercase mb-3">
               Why Choose Aguaa?
-            </h2>
-            <h3
+            </p>
+            <h2
               className="text-4xl md:text-5xl font-light text-white mb-6"
               style={{ fontFamily: "Cormorant Garamond, serif" }}
             >
               India&apos;s Most Trusted{" "}
               <span className="text-[#f0c040] italic">Shaadi Biodata</span>{" "}
               Platform
-            </h3>
+            </h2>
             {/* Trust Badges */}
             <div className="flex flex-wrap justify-center gap-3 mb-8">
               {[
@@ -869,9 +834,9 @@ const HomePage = () => {
                 <div className="group relative p-8 rounded-3xl bg-[#1f1500] border-t-2 border-[#d4a017] border-x border-b border-[#d4a017]/20 hover:border-[#f0c040]/80 transition-all duration-300 hover:bg-[#2a1e08] hover:-translate-y-1 shadow-lg hover:shadow-[0_10px_40px_rgba(212,160,23,0.15)]">
                   <div className="absolute inset-0 bg-gradient-to-br from-[#d4a017]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" />
                   <feature.icon className="w-12 h-12 text-[#d4a017] mb-6 group-hover:scale-110 group-hover:text-[#f0c040] transition-all drop-shadow-md" />
-                  <h4 className="text-xl font-medium text-[#f5ead0] mb-3">
+                  <h3 className="text-xl font-medium text-[#f5ead0] mb-3">
                     {feature.title}
-                  </h4>
+                  </h3>
                   <p className="text-[#a89060] leading-relaxed text-sm">
                     {feature.desc}
                   </p>
@@ -932,15 +897,15 @@ const HomePage = () => {
             whileInView="visible"
             viewport={{ once: true, amount: 0.2 }}
           >
-            <h2 className="text-sm font-medium text-[#d4a017] tracking-widest uppercase mb-3">
+            <p className="text-sm font-medium text-[#d4a017] tracking-widest uppercase mb-3">
               Simple Process
-            </h2>
-            <h3
+            </p>
+            <h2
               className="text-4xl md:text-5xl font-light text-white"
               style={{ fontFamily: "Cormorant Garamond, serif" }}
             >
               How It <span className="text-[#f0c040] italic">Works</span>
-            </h3>
+            </h2>
           </motion.div>
 
           <div className="grid md:grid-cols-4 gap-8 relative">
@@ -993,9 +958,9 @@ const HomePage = () => {
                     {idx + 1}
                   </div>
                 </div>
-                <h4 className="text-xl font-medium text-[#f5ead0] mb-2">
+                <h3 className="text-xl font-medium text-[#f5ead0] mb-2">
                   {step.title}
-                </h4>
+                </h3>
                 <p className="text-[#a89060] text-sm">{step.desc}</p>
               </motion.div>
             ))}
@@ -1065,27 +1030,35 @@ const HomePage = () => {
             whileInView="visible"
             viewport={{ once: true, amount: 0.2 }}
           >
-            <h2 className="text-sm font-medium text-[#d4a017] tracking-widest uppercase mb-3">
+            <p className="text-sm font-medium text-[#d4a017] tracking-widest uppercase mb-3">
               Discover
-            </h2>
-            <h3
+            </p>
+            <h2
               className="text-4xl md:text-5xl font-light text-white mb-8"
               style={{ fontFamily: "Cormorant Garamond, serif" }}
             >
               Explore <span className="text-[#f0c040] italic">Profiles</span>
-            </h3>
+            </h2>
 
             <div className="max-w-2xl mx-auto">
               <div className="w-full relative group">
                 <div className="absolute inset-0 bg-gradient-to-r from-[#d4a017] to-[#f0c040] rounded-full blur-md opacity-20 group-hover:opacity-40 transition-opacity" />
                 <div className="relative flex items-center bg-[#1f1500] border border-[#d4a017]/50 rounded-full p-2 backdrop-blur-md">
-                  <Search className="w-6 h-6 text-[#d4a017] ml-4" />
+                  <Search
+                    className="w-6 h-6 text-[#d4a017] ml-4 flex-shrink-0"
+                    aria-hidden="true"
+                  />
+                  <label htmlFor="homepage-profile-search" className="sr-only">
+                    Search verified profiles by name or city
+                  </label>
                   <input
+                    id="homepage-profile-search"
                     type="text"
+                    aria-label="Search verified profiles by name or city"
                     placeholder="Search by name or city..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full bg-transparent border-none text-[#f5ead0] px-4 py-3 focus:outline-none placeholder-[#a89060] text-lg"
+                    className="w-full bg-transparent border-none text-[#f5ead0] px-4 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d4a017] rounded-full placeholder-[#c8b080] text-lg"
                   />
                 </div>
               </div>
@@ -1099,10 +1072,7 @@ const HomePage = () => {
           ) : error ? (
             <div className="text-center py-20 bg-[#1f1500] border border-amber-900/50 rounded-3xl max-w-md mx-auto">
               <p className="text-amber-500 mb-4">{error}</p>
-              <Button
-                variant="outline"
-                onClick={() => refetchBiodatas()}
-              >
+              <Button variant="outline" onClick={() => refetchBiodatas()}>
                 Retry
               </Button>
             </div>
@@ -1207,15 +1177,15 @@ const HomePage = () => {
             whileInView="visible"
             viewport={{ once: true, amount: 0.2 }}
           >
-            <h2 className="text-sm font-medium text-[#d4a017] tracking-widest uppercase mb-3">
+            <p className="text-sm font-medium text-[#d4a017] tracking-widest uppercase mb-3">
               Testimonials
-            </h2>
-            <h3
+            </p>
+            <h2
               className="text-4xl md:text-5xl font-light text-white"
               style={{ fontFamily: "Cormorant Garamond, serif" }}
             >
               Success <span className="text-[#f0c040] italic">Stories</span>
-            </h3>
+            </h2>
           </motion.div>
 
           <Swiper
@@ -1271,9 +1241,9 @@ const HomePage = () => {
                       {review.name[0]}
                     </div>
                     <div>
-                      <h5 className="text-white font-medium text-lg">
+                      <h3 className="text-white font-medium text-lg">
                         {review.name}
-                      </h5>
+                      </h3>
                       <p className="text-sm text-[#a89060]">{review.loc}</p>
                     </div>
                   </div>
@@ -1375,7 +1345,7 @@ const HomePage = () => {
                 }}
               />
             </div>
-            <h3
+            <h2
               className="text-4xl md:text-6xl font-light text-white mb-4"
               style={{ fontFamily: "Cormorant Garamond, serif" }}
             >
@@ -1383,7 +1353,7 @@ const HomePage = () => {
               <span className="italic font-medium" style={{ color: "#f0c040" }}>
                 Gallery
               </span>
-            </h3>
+            </h2>
             <p className="text-sm text-[#a89060] max-w-md mx-auto leading-relaxed">
               Curated moments of love, tradition & celebration from real Indian
               weddings
@@ -1772,17 +1742,17 @@ const HomePage = () => {
             whileInView="visible"
             viewport={{ once: true, amount: 0.2 }}
           >
-            <h2 className="text-sm font-medium text-[#d4a017] tracking-widest uppercase mb-3">
+            <p className="text-sm font-medium text-[#d4a017] tracking-widest uppercase mb-3">
               Got Questions?
-            </h2>
-            <h3
+            </p>
+            <h2
               className="text-4xl md:text-5xl font-light text-white mb-4"
               style={{ fontFamily: "Cormorant Garamond, serif" }}
             >
               Shaadi Biodata —{" "}
               <span className="text-[#f0c040] italic">Sawal Jawab</span>
-            </h3>
-            <p className="text-[#a89060] text-sm max-w-xl mx-auto">
+            </h2>
+            <p className="text-[#c8b080] text-sm max-w-xl mx-auto">
               Marriage biodata ke baare mein aapke saare sawalo ke jawab yahan
               milenge.
             </p>
@@ -1834,21 +1804,42 @@ const HomePage = () => {
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.1 }}
                 custom={idx * 0.04}
-                className={`bg-[#1f1500] border-l-4 border-[#d4a017] rounded-r-xl rounded-bl-xl border-y border-r border-[#d4a017]/20 cursor-pointer transition-all duration-300 ${activeFaq === idx ? "shadow-md shadow-[#d4a017]/10" : "hover:bg-[#2a1e08]"}`}
-                onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
+                className={`bg-[#1f1500] border-l-4 border-[#d4a017] rounded-r-xl rounded-bl-xl border-y border-r border-[#d4a017]/20 transition-all duration-300 ${
+                  activeFaq === idx
+                    ? "shadow-md shadow-[#d4a017]/10"
+                    : "hover:bg-[#2a1e08]"
+                }`}
               >
-                <div className="flex items-center justify-between p-5 font-medium text-[#f5ead0] text-[15px]">
-                  {faq.q}
-                  <span
-                    className={`transition-transform duration-300 ${activeFaq === idx ? "rotate-180 text-[#f0c040]" : "text-[#a89060]"}`}
-                  >
-                    <ChevronDown className="w-5 h-5" />
-                  </span>
-                </div>
-                <div
-                  className={`overflow-hidden transition-all duration-500 ease-in-out ${activeFaq === idx ? "max-h-48 opacity-100" : "max-h-0 opacity-0"}`}
+                <button
+                  type="button"
+                  id={`faq-btn-${idx}`}
+                  aria-expanded={activeFaq === idx}
+                  aria-controls={`faq-answer-${idx}`}
+                  onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
+                  className="w-full text-left flex items-center justify-between p-5 font-medium text-[#f5ead0] text-[15px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d4a017] focus-visible:ring-inset rounded-r-xl cursor-pointer"
                 >
-                  <div className="p-5 pt-0 text-[#a89060] leading-relaxed text-[15px]">
+                  <span>{faq.q}</span>
+                  <span
+                    className={`transition-transform duration-300 ml-4 flex-shrink-0 ${
+                      activeFaq === idx
+                        ? "rotate-180 text-[#f0c040]"
+                        : "text-[#c8b080]"
+                    }`}
+                  >
+                    <ChevronDown className="w-5 h-5" aria-hidden="true" />
+                  </span>
+                </button>
+                <div
+                  id={`faq-answer-${idx}`}
+                  role="region"
+                  aria-labelledby={`faq-btn-${idx}`}
+                  className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                    activeFaq === idx
+                      ? "max-h-48 opacity-100"
+                      : "max-h-0 opacity-0"
+                  }`}
+                >
+                  <div className="p-5 pt-0 text-[#c8b080] leading-relaxed text-[15px]">
                     <div className="w-full h-px bg-[#d4a017]/10 mb-4" />
                     {faq.a}
                   </div>
@@ -1939,7 +1930,7 @@ const HomePage = () => {
                 Create Now
               </Button>
             </Link>
-           <Link to="/explore">
+            <Link to="/explore">
               <Button
                 variant="outline"
                 size="xl"
@@ -1952,173 +1943,274 @@ const HomePage = () => {
         </motion.div>
       </section>
 
-      {/* ================= FOOTER ================= */}
-      <footer className="bg-[#0f0a00] pt-20 pb-10 border-t border-[#d4a017]/20 relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#d4a017]/50 to-transparent" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-            <div className="lg:col-span-1">
-              <div className="flex items-center gap-2 mb-6 group cursor-pointer">
-                <Heart className="w-8 h-8 text-[#d4a017] fill-current group-hover:text-[#f0c040] transition-colors" />
-                <span
-                  className="text-3xl font-bold text-white tracking-wider group-hover:text-[#f5ead0] transition-colors"
+      {/* ================= SECTION 8: SEO CONTENT & BIODATA CATEGORIES ================= */}
+      <section className="py-16 bg-[#120a00] border-t border-[#d4a017]/20 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Section Header */}
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <span className="text-[#d4a017] text-xs uppercase tracking-widest font-semibold border border-[#d4a017]/30 px-3 py-1 rounded-full bg-[#1a0e00]">
+              Matrimonial Resources &amp; Guides
+            </span>
+            <h2
+              className="text-3xl sm:text-4xl md:text-5xl font-light text-white mt-4 mb-4"
+              style={{ fontFamily: "Cormorant Garamond, serif" }}
+            >
+              Popular Marriage Biodata{" "}
+              <span className="text-[#f0c040] italic">
+                Formats &amp; Categories
+              </span>
+            </h2>
+            <p className="text-[#a89060] text-base leading-relaxed">
+              Explore specialized biodata templates, regional matchmaking
+              traditions, and downloadable formats designed for Indian families
+              across communities.
+            </p>
+          </div>
+
+          {/* 5 Landing Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+            {/* Card 1: Hindi Biodata */}
+            <Link
+              to="/hindi-biodata-maker"
+              className="group bg-[#1a1000] border border-[#d4a017]/25 rounded-2xl p-6 hover:border-[#f0c040] transition-all hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(212,160,23,0.15)] flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-[#d4a017]/15 flex items-center justify-center text-[#f0c040] mb-4 group-hover:scale-110 transition-transform">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <h3
+                  className="text-xl font-medium text-white mb-2 group-hover:text-[#f0c040] transition-colors"
                   style={{ fontFamily: "Cormorant Garamond, serif" }}
                 >
-                  Aguaa
-                </span>
+                  Hindi Biodata Maker (हिंदी)
+                </h3>
+                <p className="text-sm text-[#a89060] leading-relaxed mb-4">
+                  शादी के लिए हिंदी में सुंदर बायोडाटा बनाएं। कुल, गोत्र,
+                  ननिहाल, और मांगलिक विवरण से सुसज्जित पारंपरिक देवनागरी
+                  प्रारूप।
+                </p>
               </div>
-              <p className="text-[#a89060] text-sm leading-relaxed mb-6 font-light">
-                Premium Indian wedding biodata maker. Elegant designs for
-                auspicious alliances and beautiful beginnings.
-              </p>
-              <div className="flex gap-4">
-                <a
-                  href="#"
-                  className="w-10 h-10 rounded-full bg-[#1f1500] border border-[#d4a017]/30 flex items-center justify-center text-[#d4a017] hover:bg-[#d4a017] hover:text-[#0f0a00] transition-all hover:scale-110"
+              <span className="text-xs text-[#d4af37] font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                हिंदी बायोडाटा बनाएं <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </Link>
+
+            {/* Card 2: Biodata Format for Boy & Girl */}
+            <Link
+              to="/biodata-format-for-marriage"
+              className="group bg-[#1a1000] border border-[#d4a017]/25 rounded-2xl p-6 hover:border-[#f0c040] transition-all hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(212,160,23,0.15)] flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-[#d4a017]/15 flex items-center justify-center text-[#f0c040] mb-4 group-hover:scale-110 transition-transform">
+                  <Users className="w-6 h-6" />
+                </div>
+                <h3
+                  className="text-xl font-medium text-white mb-2 group-hover:text-[#f0c040] transition-colors"
+                  style={{ fontFamily: "Cormorant Garamond, serif" }}
                 >
-                  <Mail className="w-5 h-5" />
-                </a>
-                <a
-                  href="#"
-                  className="w-10 h-10 rounded-full bg-[#1f1500] border border-[#d4a017]/30 flex items-center justify-center text-[#d4a017] hover:bg-[#d4a017] hover:text-[#0f0a00] transition-all hover:scale-110"
-                >
-                  <Share2 className="w-5 h-5" />
-                </a>
-                <a
-                  href="#"
-                  className="w-10 h-10 rounded-full bg-[#1f1500] border border-[#d4a017]/30 flex items-center justify-center text-[#d4a017] hover:bg-[#d4a017] hover:text-[#0f0a00] transition-all hover:scale-110"
-                >
-                  <Heart className="w-5 h-5" />
-                </a>
+                  Biodata Format for Boy &amp; Girl
+                </h3>
+                <p className="text-sm text-[#a89060] leading-relaxed mb-4">
+                  Tailored marriage biodata formats emphasizing career and
+                  education for grooms, and grace and family background for
+                  brides.
+                </p>
               </div>
-            </div>
+              <span className="text-xs text-[#d4af37] font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                Explore Sample Formats <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </Link>
 
-            <div>
-              <h4 className="text-white font-medium mb-6 uppercase tracking-wider text-sm">
-                Quick Links
-              </h4>
-              <ul className="space-y-3">
-                <li>
-                  <Link
-                    to="/"
-                    className="text-[#a89060] hover:text-[#f0c040] transition-colors flex items-center gap-2"
-                  >
-                    <ChevronRight className="w-4 h-4" /> Home
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/about"
-                    className="text-[#a89060] hover:text-[#f0c040] transition-colors flex items-center gap-2"
-                  >
-                    <ChevronRight className="w-4 h-4" /> About Us
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/explore"
-                    className="text-[#a89060] hover:text-[#f0c040] transition-colors flex items-center gap-2"
-                  >
-                    <ChevronRight className="w-4 h-4" /> Explore Profiles
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/pricing"
-                    className="text-[#a89060] hover:text-[#f0c040] transition-colors flex items-center gap-2"
-                  >
-                    <ChevronRight className="w-4 h-4" /> Premium Plans
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-white font-medium mb-6 uppercase tracking-wider text-sm">
-                Legal
-              </h4>
-              <ul className="space-y-3">
-                <li>
-                  <Link
-                    to="/privacy"
-                    className="text-[#a89060] hover:text-[#f0c040] transition-colors flex items-center gap-2"
-                  >
-                    <ChevronRight className="w-4 h-4" /> Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/terms"
-                    className="text-[#a89060] hover:text-[#f0c040] transition-colors flex items-center gap-2"
-                  >
-                    <ChevronRight className="w-4 h-4" /> Terms of Service
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/refund"
-                    className="text-[#a89060] hover:text-[#f0c040] transition-colors flex items-center gap-2"
-                  >
-                    <ChevronRight className="w-4 h-4" /> Refund Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/contact"
-                    className="text-[#a89060] hover:text-[#f0c040] transition-colors flex items-center gap-2"
-                  >
-                    <ChevronRight className="w-4 h-4" /> Contact Us
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-white font-medium mb-6 uppercase tracking-wider text-sm">
-                Stay Updated
-              </h4>
-              <p className="text-[#a89060] text-sm mb-4 font-light">
-                Subscribe to our newsletter for tips on finding the perfect
-                match.
-              </p>
-              <div className="flex shadow-lg rounded-lg overflow-hidden border border-[#d4a017]/30 focus-within:border-[#f0c040] transition-colors">
-                <input
-                  type="email"
-                  placeholder="Email address"
-                  className="bg-[#1a1000] text-[#f5ead0] px-4 py-3 w-full focus:outline-none placeholder-[#a89060]/50"
-                />
-                <button className="bg-gradient-to-r from-[#d4a017] to-[#f0c040] text-[#0f0a00] px-5 py-3 font-bold hover:opacity-90 transition-opacity flex items-center justify-center">
-                  <ArrowRight className="w-5 h-5" />
-                </button>
+            {/* Card 3: Free PDF Download */}
+            <Link
+              to="/biodata-pdf-download"
+              className="group bg-[#1a1000] border border-[#d4a017]/25 rounded-2xl p-6 hover:border-[#f0c040] transition-all hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(212,160,23,0.15)] flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-[#d4a017]/15 flex items-center justify-center text-[#f0c040] mb-4 group-hover:scale-110 transition-transform">
+                  <Download className="w-6 h-6" />
+                </div>
+                <h3
+                  className="text-xl font-medium text-white mb-2 group-hover:text-[#f0c040] transition-colors"
+                  style={{ fontFamily: "Cormorant Garamond, serif" }}
+                >
+                  Free Biodata PDF Download
+                </h3>
+                <p className="text-sm text-[#a89060] leading-relaxed mb-4">
+                  High-definition A4 PDF downloads without watermarks. One-click
+                  instant sharing on WhatsApp and print-ready quality.
+                </p>
               </div>
-            </div>
+              <span className="text-xs text-[#d4af37] font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                Download PDF Free <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </Link>
+
+            {/* Card 4: Muslim Marriage Biodata */}
+            <Link
+              to="/muslim-marriage-biodata"
+              className="group bg-[#1a1000] border border-[#d4a017]/25 rounded-2xl p-6 hover:border-[#f0c040] transition-all hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(212,160,23,0.15)] flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-[#d4a017]/15 flex items-center justify-center text-[#f0c040] mb-4 group-hover:scale-110 transition-transform">
+                  <Heart className="w-6 h-6" />
+                </div>
+                <h3
+                  className="text-xl font-medium text-white mb-2 group-hover:text-[#f0c040] transition-colors"
+                  style={{ fontFamily: "Cormorant Garamond, serif" }}
+                >
+                  Muslim Marriage Biodata (Nikah)
+                </h3>
+                <p className="text-sm text-[#a89060] leading-relaxed mb-4">
+                  Islamic matrimonial biodatas with Bismillah calligraphy,
+                  Maslak, religious practice, and family background details.
+                </p>
+              </div>
+              <span className="text-xs text-[#d4af37] font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                Create Nikah Biodata <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </Link>
+
+            {/* Card 5: Bihar & UP Shaadi Biodata */}
+            <Link
+              to="/bihar-up-shaadi-biodata"
+              className="group bg-[#1a1000] border border-[#d4a017]/25 rounded-2xl p-6 hover:border-[#f0c040] transition-all hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(212,160,23,0.15)] flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-[#d4a017]/15 flex items-center justify-center text-[#f0c040] mb-4 group-hover:scale-110 transition-transform">
+                  <MapPin className="w-6 h-6" />
+                </div>
+                <h3
+                  className="text-xl font-medium text-white mb-2 group-hover:text-[#f0c040] transition-colors"
+                  style={{ fontFamily: "Cormorant Garamond, serif" }}
+                >
+                  Bihar, UP &amp; Jharkhand Shaadi
+                </h3>
+                <p className="text-sm text-[#a89060] leading-relaxed mb-4">
+                  Honoring the cultural mediator "Aguaa" with Gotra, Nanihal,
+                  and ancestral village roots across Patna, Lucknow, and Ranchi.
+                </p>
+              </div>
+              <span className="text-xs text-[#d4af37] font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                Regional Matchmaking <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </Link>
+
+            {/* Card 6: Gallery */}
+            <Link
+              to="/gallery"
+              className="group bg-[#1a1000] border border-[#d4a017]/25 rounded-2xl p-6 hover:border-[#f0c040] transition-all hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(212,160,23,0.15)] flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-[#d4a017]/15 flex items-center justify-center text-[#f0c040] mb-4 group-hover:scale-110 transition-transform">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <h3
+                  className="text-xl font-medium text-white mb-2 group-hover:text-[#f0c040] transition-colors"
+                  style={{ fontFamily: "Cormorant Garamond, serif" }}
+                >
+                  Royal Biodata Template Gallery
+                </h3>
+                <p className="text-sm text-[#a89060] leading-relaxed mb-4">
+                  Browse Ganesh Royal, Om Classic, Royal Maharaja, and Modern
+                  Minimal designs created by professional typographers.
+                </p>
+              </div>
+              <span className="text-xs text-[#d4af37] font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                View All Designs <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </Link>
           </div>
 
-          <div className="border-t border-[#d4a017]/20 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-[#a89060] text-sm">
-              © {new Date().getFullYear()} Aguaa — Dil Se Rishta, Vishwas Se
-              Shaadi.
+          {/* Deep Content Section (600-800+ Words for Organic Google Rankings) */}
+          <div className="bg-[#180e00]/80 border border-[#d4a017]/25 rounded-3xl p-8 sm:p-12 mb-12">
+            <h2
+              className="text-2xl sm:text-3xl font-light text-white mb-6"
+              style={{ fontFamily: "Cormorant Garamond, serif" }}
+            >
+              What is a Marriage Biodata &amp; Why Does Quality Matter? (विवाह
+              बायोडाटा क्या है?)
+            </h2>
+            <p className="text-[#d8c8b0] text-sm sm:text-base leading-relaxed mb-6 font-light">
+              In Indian matrimonial culture, a <strong>marriage biodata</strong>{" "}
+              is far more than a resume; it is the sacred initial introduction
+              between two families. An arranged marriage proposal begins when
+              parents or mediators exchange this document. A well-crafted
+              matrimonial profile highlights an individual’s personal virtues,
+              career accomplishments, educational pedigree, ancestral heritage,
+              and astrological compatibility.
+            </p>
+            <p className="text-[#d8c8b0] text-sm sm:text-base leading-relaxed mb-8 font-light">
+              A sloppy, poorly formatted Word document or plain text WhatsApp
+              message can create an unfavorable first impression, whereas a
+              beautifully designed, dignified biodata conveys seriousness,
+              family prestige, and pride in one’s heritage.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center gap-1.5 text-[#a89060] text-sm font-medium tracking-wide">
-              <span className="opacity-80">Designed & Developed by</span>
-              <span className="font-bold text-[#d4a017] hover:text-[#f3ca58] transition-colors cursor-default relative group">
-                Nitish Kumar
-                <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-[#f3ca58] transition-all duration-300 group-hover:w-full"></span>
-              </span>
+            <h3
+              className="text-xl sm:text-2xl font-light text-[#f0c040] mb-4"
+              style={{ fontFamily: "Cormorant Garamond, serif" }}
+            >
+              How to Create a Shaadi Biodata Online in 5 Minutes
+            </h3>
+            <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8 text-sm">
+              <div className="border border-[#d4a017]/20 p-4 rounded-xl bg-[#0f0a00]/50">
+                <span className="text-[#f0c040] font-bold text-lg block mb-1">
+                  01. Details
+                </span>
+                <p className="text-[#c8b898]">
+                  Fill in personal details, educational qualifications, job
+                  title, and annual income.
+                </p>
+              </div>
+              <div className="border border-[#d4a017]/20 p-4 rounded-xl bg-[#0f0a00]/50">
+                <span className="text-[#f0c040] font-bold text-lg block mb-1">
+                  02. Family &amp; Gotra
+                </span>
+                <p className="text-[#c8b898]">
+                  Add parents' profession, sibling status, maternal uncle
+                  (ननिहाल), and Gotra/Kundali info.
+                </p>
+              </div>
+              <div className="border border-[#d4a017]/20 p-4 rounded-xl bg-[#0f0a00]/50">
+                <span className="text-[#f0c040] font-bold text-lg block mb-1">
+                  03. Royal Theme
+                </span>
+                <p className="text-[#c8b898]">
+                  Choose from auspicious Ganesh, Om, Islamic Nikah, or
+                  contemporary minimalist layouts.
+                </p>
+              </div>
+              <div className="border border-[#d4a017]/20 p-4 rounded-xl bg-[#0f0a00]/50">
+                <span className="text-[#f0c040] font-bold text-lg block mb-1">
+                  04. Instant PDF
+                </span>
+                <p className="text-[#c8b898]">
+                  Download watermark-free A4 PDF in 300 DPI print quality and
+                  share on WhatsApp.
+                </p>
+              </div>
             </div>
 
-            <div className="flex gap-2">
-              <span className="w-8 h-8 rounded bg-[#1f1500] border border-[#d4a017]/20 flex items-center justify-center hover:bg-[#2a1e08] transition-colors cursor-pointer">
-                <Shield className="w-4 h-4 text-[#d4a017]" />
-              </span>
-              <span className="w-8 h-8 rounded bg-[#1f1500] border border-[#d4a017]/20 flex items-center justify-center hover:bg-[#2a1e08] transition-colors cursor-pointer">
-                <Lock className="w-4 h-4 text-[#d4a017]" />
-              </span>
-            </div>
+            <h3
+              className="text-xl sm:text-2xl font-light text-[#f0c040] mb-4"
+              style={{ fontFamily: "Cormorant Garamond, serif" }}
+            >
+              Why North Indian Families in Bihar, UP &amp; Jharkhand Trust Aguaa
+            </h3>
+            <p className="text-[#d8c8b0] text-sm sm:text-base leading-relaxed font-light">
+              Traditional dating and commercial matrimony portals often
+              prioritize superficial swiping over family reputation. Aguaa
+              honors the time-tested institution of the <strong>Aguaa</strong>
+              —the trusted neighborhood mediator. Our platform empowers families
+              with bank-grade privacy controls, phone number masking, verified
+              profile badges, and high-fidelity PDF downloads. Whether you
+              reside in Patna, Lucknow, Varanasi, Ranchi, or Delhi NCR, Aguaa
+              helps you present your marriage biodata with honor and confidence.
+            </p>
           </div>
         </div>
-      </footer>
+      </section>
     </div>
   );
 };

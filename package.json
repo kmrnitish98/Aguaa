@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 5173 --strictPort false",
-    "build": "vite build",
-    "build:prod": "cross-env NODE_ENV=production vite build",
+    "build": "vite build && node scripts/prerender.mjs",
+    "build:prod": "cross-env NODE_ENV=production vite build && node scripts/prerender.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "preview:prod": "vite preview --port 4173",

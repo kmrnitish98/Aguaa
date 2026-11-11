@@ -27,8 +27,13 @@ const STATUS_MESSAGES = {
 export const getErrorMessage = (error, fallback = 'Something went wrong. Please try again.') => {
   if (!error) return fallback;
 
-  // Network / offline
-  if (error.message === 'Failed to fetch' || error.message?.includes('NetworkError')) {
+  // Timeout
+  if (error.code === 'TIMEOUT' || error.message?.includes('timed out')) {
+    return 'The request timed out. Please try again in a moment.';
+  }
+
+  // Offline
+  if (error.code === 'OFFLINE' || error.message === 'Failed to fetch' || error.message?.includes('NetworkError')) {
     return 'No internet connection. Please check your network and try again.';
   }
 

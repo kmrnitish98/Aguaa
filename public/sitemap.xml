@@ -1,16 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  sitemap.xml — Aguaa Static Sitemap (public pages only)
-  Updated: 2026-05-26
-
-  NOTE: The LIVE sitemap at https://myaguaa.in/sitemap.xml is generated
-  dynamically by api/sitemap.xml.js and includes all public profile URLs.
-  This static file serves as a fallback and is NOT served in production
-  (Vercel routes /sitemap.xml → the serverless function).
-
-  DO NOT include: /login, /signup, /dashboard, /create, /edit/*
-  These pages are marked noindex and must NOT appear in sitemaps.
--->
 <urlset
   xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml"
@@ -19,94 +7,118 @@
 
   <!-- Homepage — Highest Priority -->
   <url>
-    <loc>https://myaguaa.in/</loc>
-    <lastmod>2026-05-26</lastmod>
+    <loc>https://www.myaguaa.in/</loc>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
-    <xhtml:link rel="alternate" hreflang="en-in" href="https://myaguaa.in/" />
-    <xhtml:link rel="alternate" hreflang="hi"   href="https://myaguaa.in/" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://myaguaa.in/" />
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://www.myaguaa.in/" />
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://www.myaguaa.in/hindi-biodata-maker" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.myaguaa.in/" />
     <image:image>
-      <image:loc>https://myaguaa.in/og-banner.jpg</image:loc>
-      <image:title>Aguaa — India's Trusted Marriage Biodata Platform</image:title>
-      <image:caption>Create beautiful shaadi biodata for Bihar, UP, Jharkhand families</image:caption>
+      <image:loc>https://www.myaguaa.in/og-banner.jpg</image:loc>
+      <image:title>Aguaa — Free Marriage Biodata Maker</image:title>
+      <image:caption>Create beautiful shaadi biodata for Bihar, UP &amp; Jharkhand families</image:caption>
     </image:image>
   </url>
 
-  <!-- Explore Profiles — High crawl frequency (new profiles added daily) -->
+  <!-- High-Value Landing Pages (Target Keywords) -->
   <url>
-    <loc>https://myaguaa.in/explore</loc>
-    <lastmod>2026-05-26</lastmod>
-    <changefreq>hourly</changefreq>
+    <loc>https://www.myaguaa.in/hindi-biodata-maker</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>0.95</priority>
-    <xhtml:link rel="alternate" hreflang="en-in" href="https://myaguaa.in/explore" />
-    <xhtml:link rel="alternate" hreflang="hi"   href="https://myaguaa.in/explore" />
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://www.myaguaa.in/hindi-biodata-maker" />
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://www.myaguaa.in/" />
+  </url>
+
+  <url>
+    <loc>https://www.myaguaa.in/biodata-format-for-marriage</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+  </url>
+
+  <url>
+    <loc>https://www.myaguaa.in/biodata-pdf-download</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+  </url>
+
+  <url>
+    <loc>https://www.myaguaa.in/muslim-marriage-biodata</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+
+  <url>
+    <loc>https://www.myaguaa.in/bihar-up-shaadi-biodata</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+
+  <!-- Explore Profiles -->
+  <url>
+    <loc>https://www.myaguaa.in/explore</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+
+  <!-- Templates Gallery -->
+  <url>
+    <loc>https://www.myaguaa.in/gallery</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <!-- Pricing Plans -->
+  <url>
+    <loc>https://www.myaguaa.in/pricing</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
   </url>
 
   <!-- About Page -->
   <url>
-    <loc>https://myaguaa.in/about</loc>
-    <lastmod>2026-05-26</lastmod>
+    <loc>https://www.myaguaa.in/about</loc>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-    <xhtml:link rel="alternate" hreflang="en-in" href="https://myaguaa.in/about" />
-    <xhtml:link rel="alternate" hreflang="hi"   href="https://myaguaa.in/about" />
-  </url>
-
-  <!-- Pricing / Plans -->
-  <url>
-    <loc>https://myaguaa.in/pricing</loc>
-    <lastmod>2026-05-26</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-    <xhtml:link rel="alternate" hreflang="en-in" href="https://myaguaa.in/pricing" />
-    <xhtml:link rel="alternate" hreflang="hi"   href="https://myaguaa.in/pricing" />
-  </url>
-
-  <!-- Biodata Template Gallery -->
-  <url>
-    <loc>https://myaguaa.in/gallery</loc>
-    <lastmod>2026-05-26</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-    <xhtml:link rel="alternate" hreflang="en-in" href="https://myaguaa.in/gallery" />
-    <xhtml:link rel="alternate" hreflang="hi"   href="https://myaguaa.in/gallery" />
+    <priority>0.80</priority>
   </url>
 
   <!-- Contact Page -->
   <url>
-    <loc>https://myaguaa.in/contact</loc>
-    <lastmod>2026-05-26</lastmod>
+    <loc>https://www.myaguaa.in/contact</loc>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.70</priority>
   </url>
 
-  <!-- Legal Pages — low priority, rarely change -->
+  <!-- Legal Pages -->
   <url>
-    <loc>https://myaguaa.in/privacy</loc>
-    <lastmod>2026-05-26</lastmod>
+    <loc>https://www.myaguaa.in/privacy</loc>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>yearly</changefreq>
-    <priority>0.4</priority>
-  </url>
-
-  <url>
-    <loc>https://myaguaa.in/terms</loc>
-    <lastmod>2026-05-26</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.4</priority>
+    <priority>0.40</priority>
   </url>
 
   <url>
-    <loc>https://myaguaa.in/refund</loc>
-    <lastmod>2026-05-26</lastmod>
+    <loc>https://www.myaguaa.in/terms</loc>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
+    <priority>0.40</priority>
   </url>
 
-  <!--
-    Individual profile pages (e.g. /profile/:id) are NOT listed here.
-    They are dynamically included in the serverless sitemap at:
-    https://myaguaa.in/sitemap.xml  →  api/sitemap.xml.js
-  -->
+  <url>
+    <loc>https://www.myaguaa.in/refund</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.30</priority>
+  </url>
 
 </urlset>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, GraduationCap, ExternalLink, Heart, Sparkles, Clock, XCircle } from 'lucide-react';
 import { optimizeImage } from '../../utils/image';
 import { useAuth } from '../../hooks/useAuth';
+import { generateProfileSlug } from '../../utils/slug';
 
 // Calculate age from DOB string
 const calculateAge = (dob) => {
@@ -35,10 +36,11 @@ const BiodataCard = ({ biodata, requestStatus = null }) => {
   const age = calculateAge(dob);
 
   const location = [city, state].filter(Boolean).join(', ');
+  const slug = generateProfileSlug(biodata) || _id;
 
   const viewDestination = currentUser
-    ? `/profile/${_id}`
-    : `/login?redirect=${encodeURIComponent(`/profile/${_id}`)}`;
+    ? `/profile/${slug}`
+    : `/login?redirect=${encodeURIComponent(`/profile/${slug}`)}`;
 
   const initials = name
     .split(' ')
@@ -137,8 +139,11 @@ const BiodataCard = ({ biodata, requestStatus = null }) => {
               <img
                 src={photoURL}
                 alt={`Profile photo of ${name}`}
+                width="96"
+                height="128"
                 className="relative w-24 h-32 rounded-xl object-cover"
                 loading="lazy"
+                decoding="async"
                 style={{ border: '2px solid rgba(212,160,23,0.7)' }}
               />
             </div>
@@ -182,7 +187,7 @@ const BiodataCard = ({ biodata, requestStatus = null }) => {
 
         {/* Caste immediately below name (small, subtle font, hidden if unavailable) */}
         {caste && (
-          <p className="text-[11px] font-medium text-yellow-600/75 text-center tracking-wider uppercase -mt-0.5 truncate">
+          <p className="text-[11px] font-semibold text-amber-300 text-center tracking-wider uppercase -mt-0.5 truncate">
             {caste}
           </p>
         )}

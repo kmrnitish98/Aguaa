@@ -17,6 +17,7 @@ import EmptyState from '../components/ui/EmptyState';
 import TrustBar from '../components/ui/TrustBar';
 import { SkeletonDashboard } from '../components/ui/Skeleton';
 import { getTemplateById } from '../constants/templates';
+import { generateProfileSlug } from '../utils/slug';
 
 /* ── Animated counter ─────────────────────────────────────────── */
 const AnimatedCount = ({ value, suffix = '' }) => {
@@ -332,7 +333,7 @@ const DashboardPage = () => {
                   <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 gap-2">
                     {/* Left: view / edit / toggle */}
                     <div className="flex items-center gap-1.5 sm:gap-2">
-                      <Link to={`/profile/${biodata._id}`}>
+                      <Link to={`/profile/${generateProfileSlug(biodata) || biodata._id}`}>
                         <Button variant="ghost" size="sm" aria-label={`View profile for ${name}`}>
                           <Eye className="w-4 h-4" aria-hidden="true" />
                           <span className="hidden sm:inline">View</span>

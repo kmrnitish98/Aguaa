@@ -13,6 +13,7 @@ import {
   apiGetBiodataRequestStatus,
   apiSendBiodataRequest
 } from '../api/client';
+import { generateProfileSlug, getProfileUrl } from '../utils/slug';
 import HeroBanner from '../components/biodata/HeroBanner';
 import PersonalInfoCard from '../components/biodata/PersonalInfoCard';
 import EducationCard from '../components/biodata/EducationCard';
@@ -368,7 +369,7 @@ const ProfilePage = () => {
     setRequestError('');
     setRequestSuccess('');
     try {
-      await apiSendBiodataRequest(id, requestMessage);
+      await apiSendBiodataRequest(biodata?._id || id, requestMessage);
       setRequestStatus('PENDING');
       setRequestSuccess('Access request sent successfully! You will be able to view full biodata once the owner approves.');
       setRequestMessage('');
@@ -380,12 +381,22 @@ const ProfilePage = () => {
     }
   };
 
+  // ── Sync URL slug seamlessly if visitor opened an old ObjectId link ───────────
+  useEffect(() => {
+    if (!biodata) return;
+    const slug = generateProfileSlug(biodata);
+    if (slug && id !== slug && window.history?.replaceState) {
+      window.history.replaceState(null, '', `/profile/${slug}${window.location.search}`);
+    }
+  }, [biodata, id]);
+
   // ── Dynamic SEO: update <title> and <canonical> when profile data loads ──
   useEffect(() => {
     if (!biodata) return;
     const name = biodata?.personalInfo?.fullName;
     const city = biodata?.personalInfo?.city || '';
     const age  = biodata?.personalInfo?.age  || '';
+    const slug = generateProfileSlug(biodata) || id;
 
     // Unique title per profile
     document.title = name
@@ -399,7 +410,7 @@ const ProfilePage = () => {
       canonical.rel = 'canonical';
       document.head.appendChild(canonical);
     }
-    canonical.href = `https://myaguaa.in/profile/${id}`;
+    canonical.href = getProfileUrl(biodata);
 
     // OG tags for social sharing (WhatsApp, Facebook)
     const setMeta = (attr, name, content) => {
@@ -420,11 +431,11 @@ const ProfilePage = () => {
       city ? `from ${city}` : '',
       '— Dil Se Rishta, Vishwas Se Shaadi.',
     ].filter(Boolean).join(' ');
-    const ogImg = biodata.photoURL || 'https://myaguaa.in/og-banner.png';
+    const ogImg = biodata.photoURL || 'https://www.myaguaa.in/og-banner.png';
 
     setMeta('property', 'og:title',       ogTitle);
     setMeta('property', 'og:description', ogDesc);
-    setMeta('property', 'og:url',         `https://myaguaa.in/profile/${id}`);
+    setMeta('property', 'og:url',         getProfileUrl(biodata));
     setMeta('property', 'og:type',        'profile');
     setMeta('property', 'og:image',       ogImg);
     setMeta('name',     'twitter:title',       ogTitle);
@@ -460,13 +471,16 @@ const ProfilePage = () => {
   }, [biodata, searchParams]);
 
   const handleCopyLink = useCallback(() => {
-    const url = window.location.href;
-    const message = `Check out this biodata created on Aguaa:\n${url}`;
+    const profileUrl = biodata ? getProfileUrl(biodata) : `${(window?.location?.origin || 'https://www.myaguaa.in').replace(/\/+$/, '')}/profile/${id}`;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(profileUrl).catch(() => {});
+    }
+    const message = `Check out this biodata created on Aguaa:\n${profileUrl}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, []);
+  }, [biodata, id]);
 
   const handleRequestAccessClick = useCallback(() => {
     const el = document.getElementById('access-request-section');

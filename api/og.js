@@ -29,8 +29,8 @@ const DEFAULT_SHELL = `<!DOCTYPE html>
   <meta name="description" content="Create elegant, print-ready Indian marriage biodatas free. Verified profiles, beautiful traditional & modern templates." />
   <meta property="og:title" content="Aguaa — Free Marriage Biodata Maker" />
   <meta property="og:description" content="Create elegant, print-ready Indian marriage biodatas free. Verified profiles, beautiful traditional & modern templates." />
-  <meta property="og:image" content="https://myaguaa.in/logo.png" />
-  <meta property="og:url" content="https://myaguaa.in" />
+  <meta property="og:image" content="https://www.myaguaa.in/logo.png" />
+  <meta property="og:url" content="https://www.myaguaa.in" />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
 </head>
@@ -157,7 +157,7 @@ export default async function handler(req, res) {
     const state    = data?.personalInfo?.state?.trim() || '';
     const location = [city, state].filter(Boolean).join(', ');
     const age      = calculateAge(data?.personalInfo?.dob);
-    const photoURL = data?.photoURL || 'https://myaguaa.in/logo.png';
+    const photoURL = data?.photoURL || 'https://www.myaguaa.in/logo.png';
 
     const title = caste
       ? `${name} (${caste}) | Marriage Biodata | Aguaa`
@@ -189,7 +189,7 @@ export default async function handler(req, res) {
     <meta property="og:image" content="${escapeHtml(photoURL)}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:url" content="https://myaguaa.in/profile/${encodeURIComponent(cleanId)}" />
+    <meta property="og:url" content="https://www.myaguaa.in/profile/${encodeURIComponent(cleanId)}" />
     <meta property="og:type" content="profile" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(title)}" />

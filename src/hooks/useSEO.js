@@ -102,7 +102,9 @@ export function useSEO(pageOrConfig) {
 
     // ── Basic Meta ─────────────────────────────────────────
     if (description) setMeta('description', description);
-    if (keywords)    setMeta('keywords', keywords);
+    // Explicitly remove meta keywords (Google ignores them and advises removal)
+    const kwEl = document.querySelector('meta[name="keywords"]');
+    if (kwEl) kwEl.remove();
 
     // ── Canonical ──────────────────────────────────────────
     if (canonical) setLink('canonical', canonical);

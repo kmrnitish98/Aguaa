@@ -363,6 +363,24 @@
     animation: particle-float var(--duration, 6s) var(--delay, 0s) ease-in-out infinite;
   }
 
+  /* ─── Hardware-Accelerated Hero Particles (GPU Compositor Thread) ─ */
+  @keyframes hero-particle-float {
+    0% {
+      transform: translateY(0);
+      opacity: var(--particle-opacity, 0.7);
+    }
+    100% {
+      transform: translateY(var(--y-move, -100px));
+      opacity: 0;
+    }
+  }
+
+  .hero-particle {
+    animation: hero-particle-float var(--particle-duration, 5s) linear infinite;
+    will-change: transform, opacity;
+    pointer-events: none;
+  }
+
   /* ─── Sparkle Animation ──────────────────────────── */
   @keyframes sparkle {
     0%, 100% { opacity: 0.4; transform: scale(1); }

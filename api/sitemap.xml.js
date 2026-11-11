@@ -28,10 +28,8 @@ export default async function handler(req, res) {
 
         if (response.ok) {
           const json = await response.json();
-          // Extract biodatas array from either object response { biodatas: [...] } or plain array
           let list = Array.isArray(json) ? json : (json?.biodatas || []);
 
-          // If there are multiple pages, fetch remaining pages (up to 10 pages / 500 profiles) safely within timeout
           const totalPages = json?.pagination?.totalPages || 1;
           if (totalPages > 1) {
             try {
@@ -57,16 +55,56 @@ export default async function handler(req, res) {
             }
           }
 
-          // Build sitemap entries for public biodatas (strictly excluding any private items)
+          // Robust age calculation supporting Indian and standard formats
+          const calculateAge = (dob) => {
+            if (!dob) return null;
+            let birthDate = null;
+            if (typeof dob === 'string') {
+              const trimmed = dob.trim();
+              const dmyMatch = trimmed.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/);
+              if (dmyMatch) {
+                const day = parseInt(dmyMatch[1], 10);
+                const month = parseInt(dmyMatch[2], 10) - 1;
+                const year = parseInt(dmyMatch[3], 10);
+                birthDate = new Date(year, month, day);
+              } else {
+                birthDate = new Date(trimmed);
+              }
+            } else {
+              birthDate = new Date(dob);
+            }
+            if (!birthDate || isNaN(birthDate.getTime())) return null;
+            const now = new Date();
+            let age = now.getFullYear() - birthDate.getFullYear();
+            const m = now.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && now.getDate() < birthDate.getDate())) age--;
+            return age >= 18 && age <= 120 ? age : null;
+          };
+
+          const getSlug = (b) => {
+            const fullId = (b._id || '').toString();
+            const shortId = (b.shortId || (fullId.length >= 8 ? fullId.substring(0, 8) : fullId)).toLowerCase();
+            const rawName = b.personalInfo?.fullName || 'profile';
+            const nameSlug = rawName
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-+|-+$/g, '') || 'profile';
+            const age = calculateAge(b.personalInfo?.dob);
+            return age ? `${nameSlug}-${age}-${shortId}` : `${nameSlug}-${shortId}`;
+          };
+
           profileUrls = list
             .filter((b) => b && b._id && b.isPublic !== false)
             .map((b) => {
               const lastmod = b.updatedAt
                 ? new Date(b.updatedAt).toISOString().split('T')[0]
                 : today;
+              const slug = getSlug(b);
               return `
   <url>
-    <loc>https://myaguaa.in/profile/${b._id}</loc>
+    <loc>https://www.myaguaa.in/profile/${slug}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -74,7 +112,6 @@ export default async function handler(req, res) {
             });
         }
       } catch (fetchErr) {
-        // Non-fatal — we still return the static pages sitemap even if backend is down
         console.warn('[Sitemap] Could not fetch profile IDs from backend:', fetchErr.message);
       }
     } else {
@@ -86,60 +123,95 @@ export default async function handler(req, res) {
         xmlns:xhtml="http://www.w3.org/1999/xhtml"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 
-  <!-- Static pages -->
+  <!-- Core Pages -->
   <url>
-    <loc>https://myaguaa.in/</loc>
+    <loc>https://www.myaguaa.in/</loc>
     <lastmod>${today}</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://www.myaguaa.in/" />
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://www.myaguaa.in/hindi-biodata-maker" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.myaguaa.in/" />
   </url>
   <url>
-    <loc>https://myaguaa.in/explore</loc>
+    <loc>https://www.myaguaa.in/hindi-biodata-maker</loc>
     <lastmod>${today}</lastmod>
-    <changefreq>daily</changefreq>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+    <xhtml:link rel="alternate" hreflang="hi-IN" href="https://www.myaguaa.in/hindi-biodata-maker" />
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://www.myaguaa.in/" />
+  </url>
+  <url>
+    <loc>https://www.myaguaa.in/biodata-format-for-marriage</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>0.95</priority>
   </url>
   <url>
-    <loc>https://myaguaa.in/about</loc>
+    <loc>https://www.myaguaa.in/biodata-pdf-download</loc>
     <lastmod>${today}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
   </url>
   <url>
-    <loc>https://myaguaa.in/pricing</loc>
+    <loc>https://www.myaguaa.in/muslim-marriage-biodata</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://www.myaguaa.in/bihar-up-shaadi-biodata</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://www.myaguaa.in/explore</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://www.myaguaa.in/gallery</loc>
     <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://myaguaa.in/gallery</loc>
-    <lastmod>${today}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.75</priority>
-  </url>
-  <url>
-    <loc>https://myaguaa.in/contact</loc>
+    <loc>https://www.myaguaa.in/pricing</loc>
     <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.80</priority>
   </url>
   <url>
-    <loc>https://myaguaa.in/privacy</loc>
+    <loc>https://www.myaguaa.in/about</loc>
     <lastmod>${today}</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.4</priority>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
   </url>
   <url>
-    <loc>https://myaguaa.in/terms</loc>
+    <loc>https://www.myaguaa.in/contact</loc>
     <lastmod>${today}</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.4</priority>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
   </url>
   <url>
-    <loc>https://myaguaa.in/refund</loc>
+    <loc>https://www.myaguaa.in/privacy</loc>
     <lastmod>${today}</lastmod>
     <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
+    <priority>0.40</priority>
+  </url>
+  <url>
+    <loc>https://www.myaguaa.in/terms</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.40</priority>
+  </url>
+  <url>
+    <loc>https://www.myaguaa.in/refund</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.30</priority>
   </url>
 
   <!-- Dynamic public profile pages -->
@@ -148,7 +220,6 @@ ${profileUrls.join('')}
 </urlset>`;
 
     res.setHeader('Content-Type', 'text/xml; charset=utf-8');
-    // Cache at Vercel edge for 24 hours; serve stale for another 24h while revalidating
     res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=86400');
     return res.status(200).send(sitemap.trim());
 
